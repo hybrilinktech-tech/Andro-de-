@@ -1,0 +1,47 @@
+{
+  "name": "hybrilink Secretariat",
+  "shortName": "hybrilink Sec",
+  "description": "Application de gestion scolaire complète pour le secrétariat",
+  "themeColor": "#3498db",
+  "backgroundColor": "#3498db",
+  "startUrl": "/index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "icons": {
+    "72": "icons/icon-72x72.png",
+    "96": "icons/icon-96x96.png",
+    "128": "icons/icon-128x128.png",
+    "144": "icons/icon-144x144.png",
+    "152": "icons/icon-152x152.png",
+    "167": "icons/icon-167x167.png",
+    "180": "icons/icon-180x180.png",
+    "192": "icons/icon-192x192.png",
+    "256": "icons/icon-256x256.png",
+    "512": "icons/icon-512x512.png"
+  },
+  "features": [
+    "offline",
+    "backgroundSync",
+    "pushNotifications"
+  ],
+  "windows": {
+    "backgroundColor": "#3498db",
+    "themeColor": "#3498db",
+    "startUrl": "/index.html",
+    "display": "standalone"
+  },
+  "ios": {
+    "backgroundColor": "#3498db",
+    "themeColor": "#3498db",
+    "startUrl": "/index.html",
+    "display": "standalone",
+    "statusBarStyle": "default"
+  },
+  "android": {
+    "backgroundColor": "#3498db",
+    "themeColor": "#3498db",
+    "startUrl": "/index.html",
+    "display": "standalone",
+    "statusBarStyle": "default"
+  }
+}

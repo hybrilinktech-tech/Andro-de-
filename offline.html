@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hors ligne - hybrilink</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #3498db;
+            --secondary: #2c3e50;
+            --success: #27ae60;
+            --danger: #e74c3c;
+            --warning: #f39c12;
+            --info: #1abc9c;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: white;
+        }
+        
+        .offline-container {
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+        }
+        
+        .offline-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+        
+        .logo {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 20px;
+            background: white;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        
+        .logo i {
+            font-size: 4rem;
+            color: var(--primary);
+        }
+        
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+        
+        .status-icon {
+            font-size: 4rem;
+            margin: 20px 0;
+            color: var(--warning);
+        }
+        
+        .message {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .message p {
+            margin: 10px 0;
+            line-height: 1.6;
+        }
+        
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 30px 0;
+        }
+        
+        .feature-item {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+        }
+        
+        .feature-item i {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            color: var(--warning);
+        }
+        
+        .feature-item span {
+            display: block;
+            font-size: 0.9rem;
+        }
+        
+        .actions {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 30px;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: white;
+            color: var(--secondary);
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 20px;
+            padding: 10px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50px;
+        }
+        
+        .dot {
+            width: 10px;
+            height: 10px;
+            background: var(--danger);
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        @media (max-width: 480px) {
+            .offline-card {
+                padding: 20px 15px;
+            }
+            
+            .features {
+                grid-template-columns: 1fr;
+            }
+            
+            .actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="offline-container">
+        <div class="offline-card">
+            <div class="logo">
+                <img src="R.png" width="60px" alt="hybrilink logo">
+            </div>
+            
+            <h1>hybrilink</h1>
+            <p>Espace Secrétariat</p>
+            
+            <div class="status-icon">
+                <i class="fas fa-wifi-slash"></i>
+            </div>
+            
+            <div class="message">
+                <i class="fas fa-exclamation-triangle" style="font-size: 2rem; margin-bottom: 10px; color: var(--warning);"></i>
+                <h2 style="margin-bottom: 10px;">Vous êtes hors ligne</h2>
+                <p>La connexion internet a été perdue. Pas de panique !</p>
+                <p>L'application hybrilink continue de fonctionner en mode hors ligne avec les données déjà chargées.</p>
+            </div>
+            
+            <div class="features">
+                <div class="feature-item">
+                    <i class="fas fa-users"></i>
+                    <span>Consultation des élèves</span>
+                </div>
+                <div class="feature-item">
+                    <i class="fas fa-money-bill-wave"></i>
+                    <span>Enregistrement des paiements</span>
+                </div>
+                <div class="feature-item">
+                    <i class="fas fa-print"></i>
+                    <span>Impression des reçus</span>
+                </div>
+                <div class="feature-item">
+                    <i class="fas fa-sync"></i>
+                    <span>Synchronisation automatique</span>
+                </div>
+            </div>
+            
+            <div class="actions">
+                <button onclick="window.location.reload()" class="btn btn-primary">
+                    <i class="fas fa-redo"></i> Réessayer
+                </button>
+                <button onclick="history.back()" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Retour
+                </button>
+            </div>
+            
+            <div class="status-indicator">
+                <span class="dot"></span>
+                <span>Mode hors ligne actif</span>
+            </div>
+            
+            <p style="margin-top: 20px; font-size: 0.85rem; opacity: 0.8;">
+                <i class="fas fa-database"></i> Les données sont sauvegardées localement. 
+                La synchronisation reprendra automatiquement au retour de la connexion.
+            </p>
+        </div>
+    </div>
+    
+    <script>
+        // Vérifier périodiquement la connexion
+        setInterval(() => {
+            if (navigator.onLine) {
+                window.location.href = '/';
+            }
+        }, 5000);
+    </script>
+</body>
+</html>
