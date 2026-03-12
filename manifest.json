@@ -2,7 +2,7 @@
   "name": "hybrilink - Espace Secrétariat",
   "short_name": "hybrilink Sec",
   "description": "Application de gestion scolaire complète pour le secrétariat - Inscriptions, paiements, personnels et rapports",
-  "start_url": "/index.html",
+  "start_url": "index.html",
   "display": "standalone",
   "background_color": "#3498db",
   "theme_color": "#3498db",
