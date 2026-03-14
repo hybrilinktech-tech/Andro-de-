@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
@@ -690,20 +690,19 @@
                     </div>
                     
                     <!-- NOUVEAU : Section d'accès rapide aux statistiques -->
-                    <div class="card" style="margin-bottom: 1.5rem;">
-                        <h4 style="margin-bottom: 1rem;">Accès rapide aux statistiques</h4>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
-                            <button class="btn btn-primary" onclick="navigateToPage('students-list')" style="display: flex; align-items: center; justify-content: center; gap: 10px; padding: 15px;">
-                                <i class="fas fa-chart-line fa-fw" style="font-size: 1.2rem;"></i>
-                                <span>Statistiques Élèves</span>
-                            </button>
-                            <button class="btn btn-info" onclick="navigateToPage('teachers-list')" style="display: flex; align-items: center; justify-content: center; gap: 10px; padding: 15px; background: var(--info);">
-                                <i class="fas fa-chart-pie fa-fw" style="font-size: 1.2rem;"></i>
-                                <span>Statistiques Enseignants</span>
-                            </button>
-                        </div>
-                    </div>
-                    
+<div class="card" style="margin-bottom: 1.5rem;">
+    <h4 style="margin-bottom: 1rem;">Accès rapide aux statistiques</h4>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+        <button class="btn btn-primary" onclick="showStudentsStats()" style="display: flex; align-items: center; justify-content: center; gap: 10px; padding: 15px;">
+            <i class="fas fa-chart-line fa-fw" style="font-size: 1.2rem;"></i>
+            <span>Statistiques Élèves</span>
+        </button>
+        <button class="btn btn-info" onclick="showTeachersStats()" style="display: flex; align-items: center; justify-content: center; gap: 10px; padding: 15px; background: var(--info);">
+            <i class="fas fa-chart-pie fa-fw" style="font-size: 1.2rem;"></i>
+            <span>Statistiques Enseignants</span>
+        </button>
+    </div>
+</div>
                     <div class="card">
                         <h4>Activités récentes</h4>
                         <div id="recent-activities">
@@ -1795,6 +1794,123 @@
     </div>
 
     <script>
+// ============================================
+// FONCTIONS DE NAVIGATION POUR LES STATISTIQUES
+// ============================================
+
+/**
+ * Fonction pour naviguer vers la page des statistiques élèves
+ */
+window.showStudentsStats = function() {
+    // Désactiver tous les éléments actifs
+    document.querySelectorAll('.nav-menu button, .page').forEach(el => {
+        el.classList.remove('active');
+    });
+    
+    // Activer le bouton Élèves dans le menu
+    const studentsBtn = document.querySelector('.nav-menu button[data-page="enroll-student"]');
+    if (studentsBtn) {
+        studentsBtn.classList.add('active');
+    }
+    
+    // Activer la page des statistiques élèves
+    const studentsStatsPage = document.getElementById('students-list-page');
+    if (studentsStatsPage) {
+        studentsStatsPage.classList.add('active');
+    } else {
+        console.error('Page students-list-page non trouvée');
+        showAlert('Page des statistiques élèves non trouvée', 'error');
+        return;
+    }
+    
+    // Mettre à jour le titre
+    const titleEl = document.getElementById('page-title');
+    if (titleEl) {
+        titleEl.textContent = 'Statistiques Élèves';
+    }
+    
+    // Charger les données
+    if (typeof loadStudentsList === 'function') {
+        loadStudentsList();
+    }
+};
+
+/**
+ * Fonction pour naviguer vers la page des statistiques enseignants
+ */
+window.showTeachersStats = function() {
+    // Désactiver tous les éléments actifs
+    document.querySelectorAll('.nav-menu button, .page').forEach(el => {
+        el.classList.remove('active');
+    });
+    
+    // Activer le bouton Enseignants dans le menu
+    const teachersBtn = document.querySelector('.nav-menu button[data-page="enroll-teacher"]');
+    if (teachersBtn) {
+        teachersBtn.classList.add('active');
+    }
+    
+    // Activer la page des statistiques enseignants
+    const teachersStatsPage = document.getElementById('teachers-list-page');
+    if (teachersStatsPage) {
+        teachersStatsPage.classList.add('active');
+    } else {
+        console.error('Page teachers-list-page non trouvée');
+        showAlert('Page des statistiques enseignants non trouvée', 'error');
+        return;
+    }
+    
+    // Mettre à jour le titre
+    const titleEl = document.getElementById('page-title');
+    if (titleEl) {
+        titleEl.textContent = 'Statistiques Enseignants';
+    }
+    
+    // Charger les données
+    if (typeof loadTeachersList === 'function') {
+        loadTeachersList();
+    }
+};
+
+/**
+ * Fonction de navigation générique (si nécessaire)
+ */
+window.navigateToPage = function(pageId) {
+    // Désactiver tous les éléments actifs
+    document.querySelectorAll('.nav-menu button, .page').forEach(el => {
+        el.classList.remove('active');
+    });
+    
+    // Activer le bouton correspondant
+    const targetButton = document.querySelector(`.nav-menu button[data-page="${pageId}"]`);
+    if (targetButton) {
+        targetButton.classList.add('active');
+    }
+    
+    // Activer la page correspondante
+    const targetPage = document.getElementById(pageId + '-page');
+    if (targetPage) {
+        targetPage.classList.add('active');
+    } else {
+        console.error(`Page ${pageId}-page non trouvée`);
+        showAlert(`Page non trouvée: ${pageId}`, 'error');
+        return;
+    }
+    
+    // Mettre à jour le titre
+    const titleEl = document.getElementById('page-title');
+    if (titleEl && targetButton) {
+        titleEl.textContent = targetButton.textContent.trim();
+    }
+    
+    // Charger les données spécifiques à la page
+    if (pageId === 'students-list' && typeof loadStudentsList === 'function') {
+        loadStudentsList();
+    } else if (pageId === 'teachers-list' && typeof loadTeachersList === 'function') {
+        loadTeachersList();
+    }
+};
+
         // Variables globales pour les fonctions window
         window.printUnifiedEnrollmentForm = function() {
             alert("Fonction d'impression du bordereau à implémenter");
@@ -2515,6 +2631,10 @@
         const appRoot = document.getElementById('app-root');
         const splashScreen = document.getElementById('splash-screen');
         let currentSecretary = null;
+
+
+let _oldStudentClass = null;
+let _editingStudentData = null;
         let currentUser = null;
         
         // Variables pour les photos
@@ -2651,6 +2771,324 @@
                 reader.readAsDataURL(file);
             }
         });
+
+
+
+async function saveStudentClassHistory(studentMatricule, studentType, studentData, oldClass = null, reason = 'changement_classe') {
+    try {
+        const collectionName = 'student_class_history';
+        const currentYear = new Date().getFullYear();
+        const currentMonth = new Date().getMonth() + 1;
+        const schoolYear = currentMonth >= 9 ? `${currentYear}-${currentYear + 1}` : `${currentYear - 1}-${currentYear}`;
+        
+        const historyEntry = {
+            studentMatricule: studentMatricule,
+            studentType: studentType,
+            studentName: studentData.fullName,
+            className: studentData.class,
+            previousClass: oldClass,
+            snapshotData: JSON.parse(JSON.stringify(studentData)),
+            recordedAt: new Date().toISOString(),
+            recordedBy: currentSecretary?.uid || 'unknown',
+            recordedByName: currentSecretary?.fullName || 'Secrétaire',
+            reason: reason,
+            schoolYear: schoolYear
+        };
+
+        if (isOnline) {
+            const historyRef = doc(collection(db, collectionName));
+            await setDoc(historyRef, historyEntry);
+            console.log(`✅ Historique sauvegardé pour ${studentMatricule} (classe: ${studentData.class})`);
+        } else {
+            await cacheData(collectionName, { ...historyEntry, _temp: true });
+            await addToOfflineQueue('add', collectionName, historyEntry);
+        }
+
+        return historyEntry;
+    } catch (error) {
+        console.error('❌ Erreur sauvegarde historique:', error);
+        showAlert('Erreur lors de la sauvegarde de l\'historique', 'error');
+        throw error;
+    }
+}
+
+/**
+ * Récupère l'historique des classes d'un élève
+ * @param {string} studentMatricule - Matricule de l'élève
+ * @returns {Promise<Array>} Liste des entrées historiques triées par date
+ */
+async function getStudentClassHistory(studentMatricule) {
+    try {
+        let history = [];
+
+        if (isOnline) {
+            const historyQuery = query(
+                collection(db, 'student_class_history'),
+                where('studentMatricule', '==', studentMatricule),
+                orderBy('recordedAt', 'desc')
+            );
+            const historySnap = await getDocs(historyQuery);
+            history = historySnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        } else {
+            history = await getCachedData('student_class_history');
+            history = history
+                .filter(h => h.studentMatricule === studentMatricule)
+                .sort((a, b) => new Date(b.recordedAt) - new Date(a.recordedAt));
+        }
+
+        return history;
+    } catch (error) {
+        console.error('❌ Erreur récupération historique:', error);
+        return [];
+    }
+}
+
+/**
+ * Récupère les données qu'un élève avait dans une classe spécifique
+ * @param {string} studentMatricule - Matricule de l'élève
+ * @param {string} className - Nom de la classe recherchée
+ * @returns {Promise<object|null>} Données de l'élève pour cette classe ou null
+ */
+async function getStudentDataForClass(studentMatricule, className) {
+    try {
+        const history = await getStudentClassHistory(studentMatricule);
+        
+        const classEntry = history.find(entry => entry.className === className);
+        
+        if (classEntry) {
+            return classEntry.snapshotData;
+        }
+        
+        const studentData = await getStudentCurrentData(studentMatricule);
+        if (studentData && studentData.class === className) {
+            return studentData;
+        }
+        
+        return null;
+    } catch (error) {
+        console.error('❌ Erreur récupération données classe:', error);
+        return null;
+    }
+}
+
+/**
+ * Récupère les données actuelles d'un élève
+ * @param {string} studentMatricule - Matricule de l'élève
+ * @param {string} studentType - Type d'élève (optionnel)
+ * @returns {Promise<object|null>} Données actuelles de l'élève ou null
+ */
+async function getStudentCurrentData(studentMatricule, studentType = null) {
+    try {
+        const typesToSearch = studentType ? [studentType] : ['secondary', 'primary', 'kindergarten'];
+        
+        for (const type of typesToSearch) {
+            const collectionName = type === 'secondary' ? 'students' :
+                                 type === 'primary' ? 'primary_students' : 'kindergarten_students';
+            
+            if (isOnline) {
+                const docRef = doc(db, collectionName, studentMatricule);
+                const studentSnap = await getDoc(docRef);
+                if (studentSnap.exists()) {
+                    return { ...studentSnap.data(), studentType: type };
+                }
+            } else {
+                const cached = await getCachedData(collectionName);
+                const student = cached.find(s => s.matricule === studentMatricule);
+                if (student) {
+                    return { ...student, studentType: type };
+                }
+            }
+        }
+        
+        return null;
+    } catch (error) {
+        console.error('❌ Erreur recherche élève:', error);
+        return null;
+    }
+}
+
+/**
+ * Affiche l'historique des classes d'un élève
+ * @param {string} matricule - Matricule de l'élève
+ * @param {string} studentType - Type d'élève
+ */
+window.viewStudentHistory = async function(matricule, studentType) {
+    try {
+        const history = await getStudentClassHistory(matricule);
+        const currentData = await getStudentCurrentData(matricule, studentType);
+        
+        if (history.length === 0) {
+            showAlert("Aucun historique de changement de classe pour cet élève", "info");
+            return;
+        }
+        
+        const modalId = 'history-modal-' + Date.now();
+        let historyRows = '';
+        
+        history.forEach((entry, index) => {
+            const date = new Date(entry.recordedAt).toLocaleDateString('fr-FR', {
+                day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+            });
+            
+            historyRows += `
+                <tr style="border-bottom: 1px solid #eee; ${index === 0 ? 'background: #f0f8ff;' : ''}">
+                    <td style="padding: 10px;">${date}</td>
+                    <td style="padding: 10px;"><strong>${entry.className}</strong></td>
+                    <td style="padding: 10px;">${entry.previousClass || 'Nouvelle inscription'}</td>
+                    <td style="padding: 10px;">${entry.reason || 'Changement'}</td>
+                    <td style="padding: 10px;">
+                        <button class="btn btn-info btn-sm" onclick="viewHistoricalData('${matricule}', '${entry.className}')">
+                            <i class="fas fa-eye"></i> Voir
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+        
+        const modalHtml = `
+            <div id="${modalId}" class="modal" style="display: flex; z-index: 10000;">
+                <div class="modal-content" style="max-width: 900px; max-height: 80vh; overflow-y: auto;">
+                    <div class="modal-header">
+                        <h3><i class="fas fa-history" style="color: #3498db;"></i> Historique des classes - ${currentData?.fullName || matricule}</h3>
+                        <button class="close-modal" onclick="document.getElementById('${modalId}').remove()">&times;</button>
+                    </div>
+                    <div style="padding: 20px;">
+                        <div class="alert alert-info" style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <strong>Classe actuelle :</strong> ${currentData?.class || 'Non définie'}
+                            </div>
+                            <div>
+                                <strong>Total changements :</strong> ${history.length}
+                            </div>
+                        </div>
+                        
+                        <div style="overflow-x: auto;">
+                            <table style="width: 100%; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: #f8f9fa; border-bottom: 2px solid #3498db;">
+                                        <th style="padding: 12px; text-align: left;">Date</th>
+                                        <th style="padding: 12px; text-align: left;">Classe</th>
+                                        <th style="padding: 12px; text-align: left;">Ancienne classe</th>
+                                        <th style="padding: 12px; text-align: left;">Raison</th>
+                                        <th style="padding: 12px; text-align: left;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${historyRows}
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div style="margin-top: 20px; text-align: center;">
+                            <button class="btn btn-secondary" onclick="document.getElementById('${modalId}').remove()">Fermer</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        const oldModal = document.querySelector('.modal[id^="history-modal-"]');
+        if (oldModal) oldModal.remove();
+        
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        
+    } catch (error) {
+        console.error('Erreur affichage historique:', error);
+        showAlert('Erreur: ' + error.message, 'error');
+    }
+};
+
+/**
+ * Affiche les données historiques d'un élève pour une classe spécifique
+ * @param {string} studentMatricule - Matricule de l'élève
+ * @param {string} className - Nom de la classe
+ */
+window.viewHistoricalData = async function(studentMatricule, className) {
+    try {
+        const historicalData = await getStudentDataForClass(studentMatricule, className);
+        
+        if (!historicalData) {
+            showAlert("Aucune donnée trouvée pour cette classe", "error");
+            return;
+        }
+        
+        const modalId = 'historical-data-modal-' + Date.now();
+        const studentTypeText = historicalData.studentType === 'secondary' ? 'Secondaire' :
+                              historicalData.studentType === 'primary' ? 'Primaire' : 'Maternelle';
+        
+        const modalHtml = `
+            <div id="${modalId}" class="modal" style="display: flex; z-index: 10001;">
+                <div class="modal-content" style="max-width: 600px;">
+                    <div class="modal-header">
+                        <h3><i class="fas fa-archive" style="color: #f39c12;"></i> Données historiques - Classe ${className}</h3>
+                        <button class="close-modal" onclick="document.getElementById('${modalId}').remove()">&times;</button>
+                    </div>
+                    <div style="padding: 20px;">
+                        <div class="student-details">
+                            <div class="detail-item" style="margin-bottom: 15px;">
+                                <label style="font-weight: 600; color: #3498db;">Nom complet</label>
+                                <p style="font-size: 18px; font-weight: 500;">${historicalData.fullName}</p>
+                            </div>
+                            
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                                <div class="detail-item">
+                                    <label>Type d'élève</label>
+                                    <p><span class="badge badge-info">${studentTypeText}</span></p>
+                                </div>
+                                <div class="detail-item">
+                                    <label>Classe à cette période</label>
+                                    <p><span class="badge badge-primary">${historicalData.class}</span></p>
+                                </div>
+                                <div class="detail-item">
+                                    <label>Date de naissance</label>
+                                    <p>${historicalData.birthdate || 'Non renseignée'}</p>
+                                </div>
+                                <div class="detail-item">
+                                    <label>Sexe</label>
+                                    <p>${historicalData.gender === 'M' ? 'Masculin' : 'Féminin'}</p>
+                                </div>
+                                <div class="detail-item">
+                                    <label>Parent/Tuteur</label>
+                                    <p>${historicalData.parentName}</p>
+                                </div>
+                                <div class="detail-item">
+                                    <label>Téléphone parent</label>
+                                    <p>${historicalData.parentPhone}</p>
+                                </div>
+                                <div class="detail-item">
+                                    <label>Adresse parent</label>
+                                    <p>${historicalData.parentAddress || 'Non renseignée'}</p>
+                                </div>
+                                <div class="detail-item">
+                                    <label>Frais d'inscription</label>
+                                    <p class="currency-display">$${(historicalData.enrollmentFees || 0).toFixed(2)}</p>
+                                </div>
+                            </div>
+                            
+                            <div class="alert alert-warning" style="margin-top: 20px; padding: 15px;">
+                                <i class="fas fa-info-circle"></i>
+                                <strong>Note :</strong> Ces données sont historiques et représentent l'état de l'élève lorsqu'il était dans la classe <strong>${className}</strong>. Elles ne reflètent pas nécessairement sa situation actuelle.
+                            </div>
+                        </div>
+                        
+                        <div style="margin-top: 20px; text-align: center;">
+                            <button class="btn btn-secondary" onclick="document.getElementById('${modalId}').remove()">Fermer</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        const oldModal = document.querySelector('.modal[id^="historical-data-modal-"]');
+        if (oldModal) oldModal.remove();
+        
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        
+    } catch (error) {
+        console.error('Erreur affichage données historiques:', error);
+        showAlert('Erreur: ' + error.message, 'error');
+    }
+};
 
         // 7. UPLOAD CLOUDINARY
         async function uploadToCloudinary(file, folder = 'cs-lacolombe') {
@@ -3699,13 +4137,78 @@ window.addEventListener('offline', () => {
             }
         });
 
-        // Gestion de l'affichage du champ téléphone selon la catégorie
-        document.getElementById('student-category')?.addEventListener('change', function() {
-            const phoneGroup = document.getElementById('unified-student-phone-group');
-            if (phoneGroup) {
-                phoneGroup.style.display = this.value === 'secondary' ? 'block' : 'none';
+      // Filtrer les classes selon la catégorie sélectionnée
+document.getElementById('student-category')?.addEventListener('change', async function() {
+    const category = this.value;
+    const classSelect = document.getElementById('unified-student-class');
+    
+    if (!classSelect) return;
+    
+    // Afficher le chargement
+    classSelect.innerHTML = '<option value="">Chargement...</option>';
+    
+    try {
+        let classes = [];
+        
+        // Déterminer la collection à utiliser selon la catégorie
+        if (category === 'secondary') {
+            if (isOnline) {
+                const classesSnap = await getDocs(collection(db, 'classes'));
+                classes = classesSnap.docs.map(doc => doc.data());
+            } else {
+                classes = await getCachedData('classes');
             }
-        });
+        } else if (category === 'primary') {
+            if (isOnline) {
+                const classesSnap = await getDocs(collection(db, 'primary_classes'));
+                classes = classesSnap.docs.map(doc => doc.data());
+            } else {
+                classes = await getCachedData('primary_classes');
+            }
+        } else if (category === 'kindergarten') {
+            if (isOnline) {
+                const classesSnap = await getDocs(collection(db, 'kindergarten_classes'));
+                classes = classesSnap.docs.map(doc => doc.data());
+            } else {
+                classes = await getCachedData('kindergarten_classes');
+            }
+        }
+        
+        // Mettre à jour le select
+        classSelect.innerHTML = '<option value="">-- Sélectionner --</option>';
+        
+        if (classes.length === 0) {
+            classSelect.innerHTML += '<option value="" disabled>Aucune classe disponible</option>';
+        } else {
+            classes.forEach(classData => {
+                classSelect.innerHTML += `<option value="${classData.name}">${classData.name}</option>`;
+            });
+        }
+        
+        // Gestion du champ téléphone (secondaire uniquement)
+        const phoneGroup = document.getElementById('unified-student-phone-group');
+        if (phoneGroup) {
+            phoneGroup.style.display = category === 'secondary' ? 'block' : 'none';
+        }
+        
+    } catch (error) {
+        console.error('Erreur chargement classes:', error);
+        classSelect.innerHTML = '<option value="">-- Sélectionner --</option>';
+        classSelect.innerHTML += '<option value="" disabled>Erreur de chargement</option>';
+    }
+});
+
+// Initialiser l'affichage au chargement de la page
+document.addEventListener('DOMContentLoaded', function() {
+    // Déclencher l'événement change pour la catégorie par défaut
+    const categorySelect = document.getElementById('student-category');
+    if (categorySelect) {
+        // Simuler un événement change pour charger les classes initiales
+        setTimeout(() => {
+            categorySelect.dispatchEvent(new Event('change'));
+        }, 500);
+    }
+});
 
         // 15. GESTION UNIFIÉE DES ENSEIGNANTS
         async function loadUnifiedTeacherClasses() {
@@ -3916,47 +4419,72 @@ window.addEventListener('offline', () => {
         });
 
         // 16. GESTION UNIFIÉE DES CLASSES
-        async function loadUnifiedClassesIntoSelects() {
-            const classSelect = document.getElementById('unified-student-class');
-            const teacherClassContainer = document.getElementById('unified-teacher-classes-container');
+        // 16. GESTION UNIFIÉE DES CLASSES
+async function loadUnifiedClassesIntoSelects() {
+    const classSelect = document.getElementById('unified-student-class');
+    const teacherClassContainer = document.getElementById('unified-teacher-classes-container');
+    
+    // Charger les classes pour le sélecteur d'élève selon la catégorie sélectionnée par défaut
+    if (classSelect) {
+        const defaultCategory = document.getElementById('student-category')?.value || 'secondary';
+        await loadClassesByCategory(defaultCategory);
+    }
+    
+    // Charger les classes pour le conteneur des enseignants (checkboxes)
+    if (teacherClassContainer) {
+        teacherClassContainer.innerHTML = 'Chargement...';
+        
+        try {
+            const category = document.getElementById('teacher-category')?.value || 'secondary';
+            let classes = [];
             
-            if (classSelect) classSelect.innerHTML = '<option value="">-- Sélectionner --</option>';
-            
-            try {
-                let secondaryClasses = [], primaryClasses = [], kindergartenClasses = [];
-                
+            // Récupérer les classes selon la catégorie de l'enseignant
+            if (category === 'secondary') {
                 if (isOnline) {
-                    const secondarySnap = await getDocs(collection(db, 'classes'));
-                    secondaryClasses = secondarySnap.docs.map(doc => doc.data());
-                    
-                    const primarySnap = await getDocs(collection(db, 'primary_classes'));
-                    primaryClasses = primarySnap.docs.map(doc => doc.data());
-                    
-                    const kindergartenSnap = await getDocs(collection(db, 'kindergarten_classes'));
-                    kindergartenClasses = kindergartenSnap.docs.map(doc => doc.data());
+                    const classesSnap = await getDocs(collection(db, 'classes'));
+                    classes = classesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 } else {
-                    secondaryClasses = await getCachedData('classes');
-                    primaryClasses = await getCachedData('primary_classes');
-                    kindergartenClasses = await getCachedData('kindergarten_classes');
+                    classes = await getCachedData('classes');
                 }
-                
-                // Pour le sélecteur d'élève, on charge toutes les classes
-                if (classSelect) {
-                    secondaryClasses.forEach(data => {
-                        classSelect.innerHTML += `<option value="${data.name}" data-category="secondary">${data.name} (Secondaire)</option>`;
-                    });
-                    primaryClasses.forEach(data => {
-                        classSelect.innerHTML += `<option value="${data.name}" data-category="primary">${data.name} (Primaire)</option>`;
-                    });
-                    kindergartenClasses.forEach(data => {
-                        classSelect.innerHTML += `<option value="${data.name}" data-category="kindergarten">${data.name} (Maternelle)</option>`;
-                    });
+            } else if (category === 'primary') {
+                if (isOnline) {
+                    const classesSnap = await getDocs(collection(db, 'primary_classes'));
+                    classes = classesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                } else {
+                    classes = await getCachedData('primary_classes');
                 }
-                
-            } catch (error) {
-                console.error('Erreur chargement classes:', error);
+            } else if (category === 'kindergarten') {
+                if (isOnline) {
+                    const classesSnap = await getDocs(collection(db, 'kindergarten_classes'));
+                    classes = classesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                } else {
+                    classes = await getCachedData('kindergarten_classes');
+                }
             }
+            
+            if (classes.length === 0) {
+                teacherClassContainer.innerHTML = '<p>Aucune classe disponible pour cette catégorie</p>';
+                return;
+            }
+            
+            let html = '';
+            classes.forEach(classData => {
+                html += `
+                    <div class="class-checkbox">
+                        <input type="checkbox" id="teacher-class-${classData.id}" value="${classData.name}">
+                        <label for="teacher-class-${classData.id}">${classData.name}</label>
+                    </div>
+                `;
+            });
+            
+            teacherClassContainer.innerHTML = html;
+            
+        } catch (error) {
+            console.error("Erreur chargement classes pour enseignants:", error);
+            teacherClassContainer.innerHTML = '<p>Erreur de chargement</p>';
         }
+    }
+}
 
         async function loadUnifiedClassesList() {
             const listEl = document.getElementById('unified-classes-list');
@@ -4997,6 +5525,184 @@ window.addEventListener('offline', () => {
                 console.error("Erreur chargement statistiques enseignants:", error);
             }
         }
+// 14.1 FONCTIONS DE RECHERCHE POUR ÉLÈVES ET ENSEIGNANTS (À AJOUTER)
+
+// Fonction de recherche pour les ÉLÈVES
+document.getElementById('search-student-btn')?.addEventListener('click', async () => {
+    const searchTerm = document.getElementById('search-student-modify')?.value.trim().toLowerCase();
+    const studentType = document.getElementById('search-student-type')?.value;
+
+    if (!searchTerm) {
+        showAlert("Veuillez entrer un matricule ou un nom", "error");
+        return;
+    }
+
+    const resultsContainer = document.getElementById('student-search-results');
+    if (resultsContainer) {
+        resultsContainer.innerHTML = '<p style="text-align: center;">Recherche en cours...</p>';
+    }
+
+    try {
+        let allStudents = [];
+
+        // Déterminer les collections à parcourir en fonction du type sélectionné
+        const typesToSearch = studentType === 'all' ? ['secondary', 'primary', 'kindergarten'] : [studentType];
+
+        for (const type of typesToSearch) {
+            let collectionName = type === 'secondary' ? 'students' : type === 'primary' ? 'primary_students' : 'kindergarten_students';
+            let students = [];
+
+            if (isOnline) {
+                // En ligne : on récupère tous les documents de la collection (pas de requête "contient" simple)
+                const snapshot = await getDocs(collection(db, collectionName));
+                students = snapshot.docs.map(doc => ({ ...doc.data(), studentType: type }));
+            } else {
+                // Hors ligne : depuis le cache
+                students = await getCachedData(collectionName);
+                students = students.map(s => ({ ...s, studentType: type }));
+            }
+
+            // Filtrer pour ne garder que les actifs et correspondant à la recherche
+            const filtered = students.filter(student => {
+                if (student.status === 'deleted') return false;
+                const nameMatch = student.fullName?.toLowerCase().includes(searchTerm);
+                const matriculeMatch = student.matricule?.toLowerCase().includes(searchTerm);
+                return nameMatch || matriculeMatch;
+            });
+
+            allStudents = [...allStudents, ...filtered];
+        }
+
+        // Afficher les résultats
+        displayStudentSearchResults(allStudents);
+
+    } catch (error) {
+        console.error("Erreur recherche élève:", error);
+        if (resultsContainer) {
+            resultsContainer.innerHTML = '<p style="color: var(--danger);">Erreur lors de la recherche</p>';
+        }
+    }
+});
+
+// Fonction pour afficher les résultats de recherche des élèves
+function displayStudentSearchResults(students) {
+    const resultsContainer = document.getElementById('student-search-results');
+    if (!resultsContainer) return;
+
+    if (students.length === 0) {
+        resultsContainer.innerHTML = '<p style="text-align: center;">Aucun élève trouvé.</p>';
+        return;
+    }
+
+    let html = '<h5>Résultats de la recherche :</h5>';
+    html += '<div class="table-container"><table><thead><tr><th>Matricule</th><th>Nom</th><th>Type</th><th>Classe</th><th>Actions</th></tr></thead><tbody>';
+
+    students.forEach(student => {
+        const typeText = student.studentType === 'secondary' ? 'Secondaire' : student.studentType === 'primary' ? 'Primaire' : 'Maternelle';
+        html += `
+            <tr>
+                <td>${student.matricule}</td>
+                <td>${student.fullName}</td>
+                <td>${typeText}</td>
+                <td>${student.class}</td>
+                <td class="action-buttons">
+                    <button class="btn btn-primary btn-sm" onclick="viewStudentDetails('${student.matricule}', '${student.studentType}')">Détails</button>
+                    <button class="btn btn-warning btn-sm" onclick="editStudent('${student.matricule}', '${student.studentType}')">Modifier</button>
+                </td>
+            </tr>
+        `;
+    });
+
+    html += '</tbody></table></div>';
+    resultsContainer.innerHTML = html;
+}
+
+// Fonction de recherche pour les ENSEIGNANTS
+document.getElementById('search-teacher-btn')?.addEventListener('click', async () => {
+    const searchTerm = document.getElementById('search-teacher-modify')?.value.trim().toLowerCase();
+    const teacherType = document.getElementById('search-teacher-type')?.value;
+
+    if (!searchTerm) {
+        showAlert("Veuillez entrer un matricule ou un nom", "error");
+        return;
+    }
+
+    const resultsContainer = document.getElementById('teacher-search-results');
+    if (resultsContainer) {
+        resultsContainer.innerHTML = '<p style="text-align: center;">Recherche en cours...</p>';
+    }
+
+    try {
+        let allTeachers = [];
+
+        // Déterminer les collections à parcourir
+        const typesToSearch = teacherType === 'all' ? ['secondary', 'primary', 'kindergarten'] : [teacherType];
+
+        for (const type of typesToSearch) {
+            let collectionName = type === 'secondary' ? 'teachers' : type === 'primary' ? 'primary_teachers' : 'kindergarten_teachers';
+            let teachers = [];
+
+            if (isOnline) {
+                const snapshot = await getDocs(collection(db, collectionName));
+                teachers = snapshot.docs.map(doc => ({ ...doc.data(), teacherType: type }));
+            } else {
+                teachers = await getCachedData(collectionName);
+                teachers = teachers.map(t => ({ ...t, teacherType: type }));
+            }
+
+            const filtered = teachers.filter(teacher => {
+                if (teacher.status === 'deleted') return false;
+                const nameMatch = teacher.fullName?.toLowerCase().includes(searchTerm);
+                const matriculeMatch = teacher.matricule?.toLowerCase().includes(searchTerm);
+                return nameMatch || matriculeMatch;
+            });
+
+            allTeachers = [...allTeachers, ...filtered];
+        }
+
+        // Afficher les résultats
+        displayTeacherSearchResults(allTeachers);
+
+    } catch (error) {
+        console.error("Erreur recherche enseignant:", error);
+        if (resultsContainer) {
+            resultsContainer.innerHTML = '<p style="color: var(--danger);">Erreur lors de la recherche</p>';
+        }
+    }
+});
+
+// Fonction pour afficher les résultats de recherche des enseignants
+function displayTeacherSearchResults(teachers) {
+    const resultsContainer = document.getElementById('teacher-search-results');
+    if (!resultsContainer) return;
+
+    if (teachers.length === 0) {
+        resultsContainer.innerHTML = '<p style="text-align: center;">Aucun enseignant trouvé.</p>';
+        return;
+    }
+
+    let html = '<h5>Résultats de la recherche :</h5>';
+    html += '<div class="table-container"><table><thead><tr><th>Matricule</th><th>Nom</th><th>Type</th><th>Actions</th></tr></thead><tbody>';
+
+    teachers.forEach(teacher => {
+        const typeText = teacher.teacherType === 'secondary' ? 'Secondaire' : teacher.teacherType === 'primary' ? 'Primaire' : 'Maternelle';
+        html += `
+            <tr>
+                <td>${teacher.matricule}</td>
+                <td>${teacher.fullName}</td>
+                <td>${typeText}</td>
+                <td class="action-buttons">
+                    <button class="btn btn-primary btn-sm" onclick="viewTeacherDetails('${teacher.matricule}', '${teacher.teacherType}')">Détails</button>
+                    <button class="btn btn-warning btn-sm" onclick="editTeacher('${teacher.matricule}', '${teacher.teacherType}')">Modifier</button>
+                </td>
+            </tr>
+        `;
+    });
+
+    html += '</tbody></table></div>';
+    resultsContainer.innerHTML = html;
+}
+
 
         async function loadClassStats() {
             const container = document.getElementById('class-stats-container');
@@ -7863,6 +8569,56 @@ async function loadProfileData() {
             });
         });
 
+// Fonction pour charger les classes selon la catégorie sélectionnée pour les élèves
+async function loadClassesByCategory(category) {
+    const classSelect = document.getElementById('unified-student-class');
+    if (!classSelect) return;
+    
+    classSelect.innerHTML = '<option value="">-- Chargement... --</option>';
+    
+    try {
+        let classes = [];
+        let collectionName = '';
+        
+        // Déterminer la collection en fonction de la catégorie
+        if (category === 'secondary') {
+            collectionName = 'classes';
+        } else if (category === 'primary') {
+            collectionName = 'primary_classes';
+        } else if (category === 'kindergarten') {
+            collectionName = 'kindergarten_classes';
+        } else {
+            classSelect.innerHTML = '<option value="">-- Sélectionner --</option>';
+            return;
+        }
+        
+        // Récupérer les classes depuis Firebase ou le cache
+        if (isOnline) {
+            const classesSnap = await getDocs(collection(db, collectionName));
+            classes = classesSnap.docs.map(doc => doc.data());
+        } else {
+            classes = await getCachedData(collectionName);
+        }
+        
+        if (classes.length === 0) {
+            classSelect.innerHTML = '<option value="">Aucune classe disponible</option>';
+            return;
+        }
+        
+        // Construire les options
+        let options = '<option value="">-- Sélectionner --</option>';
+        classes.forEach(classData => {
+            options += `<option value="${classData.name}">${classData.name}</option>`;
+        });
+        
+        classSelect.innerHTML = options;
+        
+    } catch (error) {
+        console.error("Erreur chargement classes:", error);
+        classSelect.innerHTML = '<option value="">Erreur de chargement</option>';
+    }
+}
+
         // 28. CHARGEMENT DES CLASSES POUR COMMUNIQUÉ
         async function loadClassesForCommunique() {
             const container = document.getElementById('communique-classes-container');
@@ -8858,57 +9614,77 @@ async function loadProfileData() {
             }
         };
 
-        window.viewStudentDetails = async (matricule, studentType) => {
-            try {
-                let studentData = null;
-                let collectionName = studentType === 'secondary' ? 'students' :
-                                   studentType === 'primary' ? 'primary_students' : 'kindergarten_students';
+        // REMPLACER VOTRE FONCTION viewStudentDetails ACTUELLE PAR CELLE-CI
+
+window.viewStudentDetails = async (matricule, studentType) => {
+    try {
+        let studentData = null;
+        let collectionName = studentType === 'secondary' ? 'students' :
+                           studentType === 'primary' ? 'primary_students' : 'kindergarten_students';
+        
+        if (isOnline) {
+            const docRef = doc(db, collectionName, matricule);
+            const studentSnap = await getDoc(docRef);
+            if (studentSnap.exists()) studentData = studentSnap.data();
+        } else {
+            const cached = await getCachedData(collectionName);
+            studentData = cached.find(s => s.matricule === matricule);
+        }
+        
+        if (!studentData) {
+            showAlert('Élève non trouvé.', 'error');
+            return;
+        }
+        
+        const modalContent = document.getElementById('student-details-content');
+        if (!modalContent) return;
+        
+        const studentTypeText = studentType === 'secondary' ? 'Secondaire' : 
+                              studentType === 'primary' ? 'Primaire' : 'Maternelle';
+        
+        // Vérifier s'il y a un historique
+        const history = await getStudentClassHistory(matricule);
+        const historyCount = history.length;
+        
+        const details = `
+            <div class="student-details">
+                <div class="detail-item"><label>Matricule</label><p>${studentData.matricule}</p></div>
+                <div class="detail-item"><label>Nom</label><p>${studentData.fullName}</p></div>
+                <div class="detail-item"><label>Type</label><p>${studentTypeText}</p></div>
+                <div class="detail-item"><label>Date naissance</label><p>${studentData.birthdate}</p></div>
+                <div class="detail-item"><label>Lieu naissance</label><p>${studentData.birthplace || ''}</p></div>
+                <div class="detail-item"><label>Sexe</label><p>${studentData.gender === 'M' ? 'Masculin' : 'Féminin'}</p></div>
+                <div class="detail-item"><label>Adresse</label><p>${studentData.address || ''}</p></div>
+                ${studentType === 'secondary' ? `<div class="detail-item"><label>Téléphone</label><p>${studentData.phone || ''}</p></div>` : ''}
+                <div class="detail-item"><label>Classe</label><p>${studentData.class}</p></div>
+                <div class="detail-item"><label>Frais inscription</label><p class="currency-display">$${(studentData.enrollmentFees || 0).toFixed(2)}</p></div>
+                <div class="detail-item"><label>Parent</label><p>${studentData.parentName}</p></div>
+                <div class="detail-item"><label>Tél parent</label><p>${studentData.parentPhone}</p></div>
                 
-                if (isOnline) {
-                    const docRef = doc(db, collectionName, matricule);
-                    const studentSnap = await getDoc(docRef);
-                    if (studentSnap.exists()) studentData = studentSnap.data();
-                } else {
-                    const cached = await getCachedData(collectionName);
-                    studentData = cached.find(s => s.matricule === matricule);
-                }
-                
-                if (!studentData) {
-                    showAlert('Élève non trouvé.', 'error');
-                    return;
-                }
-                
-                const modalContent = document.getElementById('student-details-content');
-                if (!modalContent) return;
-                
-                const studentTypeText = studentType === 'secondary' ? 'Secondaire' : 
-                                      studentType === 'primary' ? 'Primaire' : 'Maternelle';
-                
-                const details = `
-                    <div class="student-details">
-                        <div class="detail-item"><label>Matricule</label><p>${studentData.matricule}</p></div>
-                        <div class="detail-item"><label>Nom</label><p>${studentData.fullName}</p></div>
-                        <div class="detail-item"><label>Type</label><p>${studentTypeText}</p></div>
-                        <div class="detail-item"><label>Date naissance</label><p>${studentData.birthdate}</p></div>
-                        <div class="detail-item"><label>Lieu naissance</label><p>${studentData.birthplace || ''}</p></div>
-                        <div class="detail-item"><label>Sexe</label><p>${studentData.gender === 'M' ? 'Masculin' : 'Féminin'}</p></div>
-                        <div class="detail-item"><label>Adresse</label><p>${studentData.address || ''}</p></div>
-                        ${studentType === 'secondary' ? `<div class="detail-item"><label>Téléphone</label><p>${studentData.phone || ''}</p></div>` : ''}
-                        <div class="detail-item"><label>Classe</label><p>${studentData.class}</p></div>
-                        <div class="detail-item"><label>Frais inscription</label><p class="currency-display">$${(studentData.enrollmentFees || 0).toFixed(2)}</p></div>
-                        <div class="detail-item"><label>Parent</label><p>${studentData.parentName}</p></div>
-                        <div class="detail-item"><label>Tél parent</label><p>${studentData.parentPhone}</p></div>
+                ${historyCount > 0 ? `
+                <div class="detail-item" style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #eee;">
+                    <label style="color: #3498db;">Historique des classes</label>
+                    <div style="margin-top: 10px;">
+                        <button class="btn btn-info" onclick="viewStudentHistory('${matricule}', '${studentType}')" style="width: 100%;">
+                            <i class="fas fa-history"></i> Voir l'historique (${historyCount} changement${historyCount > 1 ? 's' : ''})
+                        </button>
+                        <p style="font-size: 11px; color: #666; margin-top: 5px;">
+                            Dernier changement : ${new Date(history[0].recordedAt).toLocaleDateString('fr-FR')}
+                        </p>
                     </div>
-                `;
-                
-                modalContent.innerHTML = details;
-                document.getElementById('student-details-modal')?.classList.remove('hidden');
-                
-            } catch (error) {
-                console.error('Erreur:', error);
-                showAlert('Erreur: ' + error.message, 'error');
-            }
-        };
+                </div>
+                ` : ''}
+            </div>
+        `;
+        
+        modalContent.innerHTML = details;
+        document.getElementById('student-details-modal')?.classList.remove('hidden');
+        
+    } catch (error) {
+        console.error('Erreur:', error);
+        showAlert('Erreur: ' + error.message, 'error');
+    }
+}; 
 
         window.viewTeacherDetails = async (matricule, teacherType) => {
             try {
@@ -8965,86 +9741,105 @@ async function loadProfileData() {
             }
         };
 
-        // 35. FONCTIONS D'ÉDITION
-        window.editStudent = async (matricule, studentType) => {
-            try {
-                let collectionName = studentType === 'secondary' ? 'students' :
-                                   studentType === 'primary' ? 'primary_students' : 'kindergarten_students';
-                
-                let studentData = null;
-                
-                if (isOnline) {
-                    const docRef = doc(db, collectionName, matricule);
-                    const studentSnap = await getDoc(docRef);
-                    if (studentSnap.exists()) studentData = studentSnap.data();
-                } else {
-                    const cached = await getCachedData(collectionName);
-                    studentData = cached.find(s => s.matricule === matricule);
-                }
-                
-                if (!studentData) {
-                    showAlert('Élève non trouvé.', 'error');
-                    return;
-                }
-                
-                document.getElementById('edit-student-id').value = matricule;
-                document.getElementById('edit-student-collection').value = collectionName;
-                document.getElementById('edit-student-name').value = studentData.fullName || '';
-                document.getElementById('edit-student-birthdate').value = studentData.birthdate || '';
-                document.getElementById('edit-student-birthplace').value = studentData.birthplace || '';
-                document.getElementById('edit-student-gender').value = studentData.gender || '';
-                document.getElementById('edit-student-address').value = studentData.address || '';
-                document.getElementById('edit-student-phone').value = studentData.phone || '';
-                document.getElementById('edit-student-fees').value = studentData.enrollmentFees || 0;
-                document.getElementById('edit-parent-name').value = studentData.parentName || '';
-                document.getElementById('edit-parent-phone').value = studentData.parentPhone || '';
-                document.getElementById('edit-parent-address').value = studentData.parentAddress || '';
-                document.getElementById('edit-student-status').value = studentData.status || 'active';
-                
-                const classSelect = document.getElementById('edit-student-class');
-                if (classSelect) {
-                    classSelect.innerHTML = '<option value="">-- Sélectionner --</option>';
-                    
-                    let classes = [];
-                    if (studentType === 'secondary') {
-                        if (isOnline) {
-                            const classesSnap = await getDocs(collection(db, 'classes'));
-                            classes = classesSnap.docs.map(doc => doc.data());
-                        } else {
-                            classes = await getCachedData('classes');
-                        }
-                    } else if (studentType === 'primary') {
-                        if (isOnline) {
-                            const classesSnap = await getDocs(collection(db, 'primary_classes'));
-                            classes = classesSnap.docs.map(doc => doc.data());
-                        } else {
-                            classes = await getCachedData('primary_classes');
-                        }
-                    } else {
-                        if (isOnline) {
-                            const classesSnap = await getDocs(collection(db, 'kindergarten_classes'));
-                            classes = classesSnap.docs.map(doc => doc.data());
-                        } else {
-                            classes = await getCachedData('kindergarten_classes');
-                        }
-                    }
-                    
-                    classes.forEach(classData => {
-                        classSelect.innerHTML += `<option value="${classData.name}">${classData.name}</option>`;
-                    });
-                    
-                    classSelect.value = studentData.class || '';
-                }
-                
-                document.getElementById('edit-student-phone-container').style.display = studentType === 'secondary' ? 'block' : 'none';
-                document.getElementById('edit-student-modal')?.classList.remove('hidden');
-                
-            } catch (error) {
-                console.error('Erreur:', error);
-                showAlert('Erreur: ' + error.message, 'error');
-            }
-        };
+        // REMPLACER COMPLÈTEMENT VOTRE FONCTION editStudent ACTUELLE PAR CELLE-CI
 
+window.editStudent = async (matricule, studentType) => {
+    try {
+        let collectionName = studentType === 'secondary' ? 'students' :
+                           studentType === 'primary' ? 'primary_students' : 'kindergarten_students';
+        
+        let studentData = null;
+        
+        if (isOnline) {
+            const docRef = doc(db, collectionName, matricule);
+            const studentSnap = await getDoc(docRef);
+            if (studentSnap.exists()) studentData = studentSnap.data();
+        } else {
+            const cached = await getCachedData(collectionName);
+            studentData = cached.find(s => s.matricule === matricule);
+        }
+        
+        if (!studentData) {
+            showAlert('Élève non trouvé.', 'error');
+            return;
+        }
+        
+        // Stocker l'ancienne classe avant modification
+        _oldStudentClass = studentData.class;
+        _editingStudentData = { ...studentData, studentType: studentType };
+        
+        document.getElementById('edit-student-id').value = matricule;
+        document.getElementById('edit-student-collection').value = collectionName;
+        document.getElementById('edit-student-name').value = studentData.fullName || '';
+        document.getElementById('edit-student-birthdate').value = studentData.birthdate || '';
+        document.getElementById('edit-student-birthplace').value = studentData.birthplace || '';
+        document.getElementById('edit-student-gender').value = studentData.gender || '';
+        document.getElementById('edit-student-address').value = studentData.address || '';
+        document.getElementById('edit-student-phone').value = studentData.phone || '';
+        document.getElementById('edit-student-fees').value = studentData.enrollmentFees || 0;
+        document.getElementById('edit-parent-name').value = studentData.parentName || '';
+        document.getElementById('edit-parent-phone').value = studentData.parentPhone || '';
+        document.getElementById('edit-parent-address').value = studentData.parentAddress || '';
+        document.getElementById('edit-student-status').value = studentData.status || 'active';
+        
+        const classSelect = document.getElementById('edit-student-class');
+        if (classSelect) {
+            classSelect.innerHTML = '<option value="">-- Sélectionner --</option>';
+            
+            let classes = [];
+            if (studentType === 'secondary') {
+                if (isOnline) {
+                    const classesSnap = await getDocs(collection(db, 'classes'));
+                    classes = classesSnap.docs.map(doc => doc.data());
+                } else {
+                    classes = await getCachedData('classes');
+                }
+            } else if (studentType === 'primary') {
+                if (isOnline) {
+                    const classesSnap = await getDocs(collection(db, 'primary_classes'));
+                    classes = classesSnap.docs.map(doc => doc.data());
+                } else {
+                    classes = await getCachedData('primary_classes');
+                }
+            } else {
+                if (isOnline) {
+                    const classesSnap = await getDocs(collection(db, 'kindergarten_classes'));
+                    classes = classesSnap.docs.map(doc => doc.data());
+                } else {
+                    classes = await getCachedData('kindergarten_classes');
+                }
+            }
+            
+            classes.forEach(classData => {
+                classSelect.innerHTML += `<option value="${classData.name}">${classData.name}</option>`;
+            });
+            
+            classSelect.value = studentData.class || '';
+        }
+        
+        // Ajouter un bouton pour voir l'historique
+        const modalHeader = document.querySelector('#edit-student-modal .modal-header');
+        if (modalHeader) {
+            const existingBtn = document.getElementById('view-history-btn');
+            if (!existingBtn) {
+                const historyBtn = document.createElement('button');
+                historyBtn.id = 'view-history-btn';
+                historyBtn.className = 'btn btn-info btn-sm';
+                historyBtn.style.marginLeft = '10px';
+                historyBtn.innerHTML = '<i class="fas fa-history"></i> Historique';
+                historyBtn.onclick = () => viewStudentHistory(matricule, studentType);
+                modalHeader.appendChild(historyBtn);
+            }
+        }
+        
+        document.getElementById('edit-student-phone-container').style.display = studentType === 'secondary' ? 'block' : 'none';
+        document.getElementById('edit-student-modal')?.classList.remove('hidden');
+        
+    } catch (error) {
+        console.error('Erreur:', error);
+        showAlert('Erreur: ' + error.message, 'error');
+    }
+};
         window.editTeacher = async (matricule, teacherType) => {
             try {
                 let collectionName = teacherType === 'secondary' ? 'teachers' :
@@ -9125,57 +9920,87 @@ async function loadProfileData() {
             }
         };
 
-        document.getElementById('edit-student-form')?.addEventListener('submit', async (e) => {
-            e.preventDefault();
+        // REMPLACER VOTRE GESTIONNAIRE DE SOUMISSION EXISTANT PAR CELUI-CI
+
+document.getElementById('edit-student-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const studentId = document.getElementById('edit-student-id')?.value;
+    const collectionName = document.getElementById('edit-student-collection')?.value;
+    const fullName = document.getElementById('edit-student-name')?.value;
+    const birthdate = document.getElementById('edit-student-birthdate')?.value;
+    const birthplace = document.getElementById('edit-student-birthplace')?.value;
+    const gender = document.getElementById('edit-student-gender')?.value;
+    const address = document.getElementById('edit-student-address')?.value;
+    const phone = document.getElementById('edit-student-phone')?.value;
+    const studentClass = document.getElementById('edit-student-class')?.value;
+    const enrollmentFees = parseFloat(document.getElementById('edit-student-fees')?.value) || 0;
+    const parentName = document.getElementById('edit-parent-name')?.value;
+    const parentPhone = document.getElementById('edit-parent-phone')?.value;
+    const parentAddress = document.getElementById('edit-parent-address')?.value;
+    const status = document.getElementById('edit-student-status')?.value;
+    
+    if (!studentId || !collectionName || !fullName || !birthdate || !studentClass || !parentName || !parentPhone) {
+        showAlert("Veuillez remplir tous les champs obligatoires", "error");
+        return;
+    }
+    
+    try {
+        // Récupérer l'ancienne classe avant modification
+        const oldClass = _oldStudentClass;
+        const studentType = collectionName === 'students' ? 'secondary' :
+                          collectionName === 'primary_students' ? 'primary' : 'kindergarten';
+        
+        const updateData = { 
+            fullName, birthdate, birthplace, gender, address, 
+            class: studentClass, enrollmentFees, parentName, parentPhone, 
+            parentAddress, status, updatedAt: new Date().toISOString() 
+        };
+        
+        if (collectionName === 'students') updateData.phone = phone;
+        
+        // Sauvegarder l'historique si la classe a changé
+        if (oldClass && oldClass !== studentClass) {
+            const studentData = {
+                ..._editingStudentData,
+                ...updateData
+            };
             
-            const studentId = document.getElementById('edit-student-id')?.value;
-            const collectionName = document.getElementById('edit-student-collection')?.value;
-            const fullName = document.getElementById('edit-student-name')?.value;
-            const birthdate = document.getElementById('edit-student-birthdate')?.value;
-            const birthplace = document.getElementById('edit-student-birthplace')?.value;
-            const gender = document.getElementById('edit-student-gender')?.value;
-            const address = document.getElementById('edit-student-address')?.value;
-            const phone = document.getElementById('edit-student-phone')?.value;
-            const studentClass = document.getElementById('edit-student-class')?.value;
-            const enrollmentFees = parseFloat(document.getElementById('edit-student-fees')?.value) || 0;
-            const parentName = document.getElementById('edit-parent-name')?.value;
-            const parentPhone = document.getElementById('edit-parent-phone')?.value;
-            const parentAddress = document.getElementById('edit-parent-address')?.value;
-            const status = document.getElementById('edit-student-status')?.value;
+            await saveStudentClassHistory(
+                studentId,
+                studentType,
+                studentData,
+                oldClass,
+                'changement_classe'
+            );
             
-            if (!studentId || !collectionName || !fullName || !birthdate || !studentClass || !parentName || !parentPhone) {
-                showAlert("Veuillez remplir tous les champs obligatoires", "error");
-                return;
-            }
-            
-            try {
-                const updateData = { 
-                    fullName, birthdate, birthplace, gender, address, 
-                    class: studentClass, enrollmentFees, parentName, parentPhone, 
-                    parentAddress, status, updatedAt: new Date().toISOString() 
-                };
-                
-                if (collectionName === 'students') updateData.phone = phone;
-                
-                if (isOnline) {
-                    await updateDoc(doc(db, collectionName, studentId), updateData);
-                } else {
-                    await addToOfflineQueue('update', collectionName, updateData, studentId);
-                }
-                
-                await cacheData(collectionName, { matricule: studentId, ...updateData });
-                
-                showAlert('Élève modifié avec succès !', 'success');
-                document.getElementById('edit-student-modal')?.classList.add('hidden');
-                
-                loadStudentsList();
-                loadDashboardStats();
-                
-            } catch (error) {
-                console.error('Erreur modification:', error);
-                showAlert('Erreur: ' + error.message, 'error');
-            }
-        });
+            showAlert(`Classe changée de "${oldClass}" à "${studentClass}" - Historique préservé`, 'info');
+        }
+        
+        if (isOnline) {
+            await updateDoc(doc(db, collectionName, studentId), updateData);
+        } else {
+            await addToOfflineQueue('update', collectionName, updateData, studentId);
+        }
+        
+        await cacheData(collectionName, { matricule: studentId, ...updateData });
+        
+        showAlert('Élève modifié avec succès !', 'success');
+        document.getElementById('edit-student-modal')?.classList.add('hidden');
+        
+        // Nettoyer les variables temporaires
+        _oldStudentClass = null;
+        _editingStudentData = null;
+        
+        loadStudentsList();
+        loadDashboardStats();
+        loadUnifiedClassesList();
+        
+    } catch (error) {
+        console.error('Erreur modification:', error);
+        showAlert('Erreur: ' + error.message, 'error');
+    }
+});
 
         document.getElementById('edit-teacher-form')?.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -10414,7 +11239,10 @@ window.addEventListener('load', function() {
         splashScreen.classList.add('hidden');
     }
 });
+
 </script>
 
+
+
 </body>
-</html>
+</html>  
