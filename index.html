@@ -576,29 +576,22 @@
     </div>
 
     <!-- Écran de connexion sécurisé -->
-  <div id="login-overlay" class="login-overlay hidden">
-    <div class="login-card">
-        <div style="text-align: center; margin-bottom: 20px;">
-            <img src="R.png" width="80px" style="border-radius: 10px;">
-            <h3>hybrilink</h3>
-            <p>Portail Secrétariat</p>
-        </div>
-        <form id="login-form">
-            <div class="form-group">
-                <input type="email" id="login-email" class="form-control" placeholder="Email" required>
-            </div>
-            <div class="form-group">
-                <input type="password" id="login-password" class="form-control" placeholder="Mot de passe" required>
-            </div>
-            <div id="login-alert" class="alert hidden"></div>
-            <button type="submit" class="btn btn-primary" style="width:100%">Se connecter</button>
-        </form>
-        <div style="margin-top:15px; font-size:11px; color:#666; text-align:center;">
-            <i class="fas fa-save"></i> Session sauvegardée localement<br>
-            <small>Restez connecté même après redémarrage</small>
+    <div id="login-overlay" class="login-overlay hidden">
+        <div class="login-card">
+            <h3>Portail Secrétariat</h3>
+            <p>Veuillez vous connecter pour continuer.</p>
+            <form id="login-form" style="margin-top: 2rem;">
+                <div class="form-group">
+                    <input type="email" id="login-email" class="form-control" placeholder="Email" required>
+                </div>
+                <div class="form-group">
+                    <input type="password" id="login-password" class="form-control" placeholder="Mot de passe" required>
+                </div>
+                <div id="login-alert" class="alert hidden" style="margin-top: 1rem;"></div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Connexion</button>
+            </form>
         </div>
     </div>
-</div>
 
     <!-- Contenu de l'application -->
     <div id="app-root" class="app-container hidden">
@@ -4942,35 +4935,112 @@ window.viewHistoricalData = async function(studentMatricule, className) {
         // 9. AUTHENTIFICATION
 // --- REMPLACER LA FONCTION EXISTANTE ---
 
-// Remplacer la fonction checkAuthentication
+// --- REMPLACER LA FONCTION checkAuthentication EXISTANTE ---
 window.checkAuthentication = function() {
-    // Vérifier si un utilisateur Firebase est connecté
-    const user = window.auth ? window.auth.currentUser : null;
     const loginOverlay = document.getElementById('login-overlay');
     const appRoot = document.getElementById('app-root');
     
+    // 1. Vérifier d'abord si une session est stockée localement
+    const savedSession = getUserSession();
+    
+    if (savedSession && hasValidSession()) {
+        console.log('🔐 Session trouvée, connexion automatique...');
+        
+        // Créer un utilisateur simulé à partir de la session
+        const mockUser = {
+            uid: savedSession.uid,
+            email: savedSession.email,
+            isOfflineSession: true  // Marquer comme session hors ligne
+        };
+        
+        // Créer les données du secrétaire à partir de la session
+        const mockSecretary = {
+            uid: savedSession.uid,
+            email: savedSession.email,
+            fullName: savedSession.fullName,
+            photoURL: savedSession.photoURL,
+            phone: savedSession.phone,
+            address: savedSession.address,
+            createdAt: savedSession.createdAt
+        };
+        
+        // Définir les variables globales
+        window.currentUser = mockUser;
+        window.currentSecretary = mockSecretary;
+        
+        // Cacher le login et afficher l'application
+        if (loginOverlay) loginOverlay.classList.add('hidden');
+        if (appRoot) appRoot.classList.remove('hidden');
+        
+        // Mettre à jour l'interface
+        updateInterfaceWithUser(mockSecretary);
+        
+        // Charger les données depuis le cache
+        setTimeout(async () => {
+            await loadFromCacheAndDisplay();
+            if (typeof loadDashboardStats === 'function') loadDashboardStats();
+            if (typeof loadUnifiedClassesIntoSelects === 'function') loadUnifiedClassesIntoSelects();
+            if (typeof loadUnifiedClassesList === 'function') loadUnifiedClassesList();
+            if (typeof initializePortal === 'function') initializePortal();
+        }, 100);
+        
+        return;
+    }
+    
+    // 2. Si pas de session, vérifier Firebase (pour la première connexion)
+    const user = window.auth ? window.auth.currentUser : null;
+    
     if (user) {
-        // Utilisateur Firebase connecté, on le déconnecte pour forcer une nouvelle connexion
-        if (window.auth) {
-            window.auth.signOut().then(() => {
+        console.log('🔐 Utilisateur Firebase connecté');
+        
+        // Récupérer les données du secrétaire
+        (async () => {
+            try {
+                const q = query(collection(db, 'secretary'), where('uid', '==', user.uid));
+                const snap = await getDocs(q);
+                
+                let secretaryData = {};
+                if (!snap.empty) {
+                    secretaryData = { id: snap.docs[0].id, ...snap.docs[0].data() };
+                } else {
+                    secretaryData = {
+                        uid: user.uid,
+                        fullName: user.email.split('@')[0],
+                        email: user.email,
+                        createdAt: new Date().toISOString()
+                    };
+                }
+                
+                window.currentUser = user;
+                window.currentSecretary = { ...secretaryData, uid: user.uid };
+                
+                // SAUVEGARDER LA SESSION POUR LES PROCHAINES FOIS
+                saveUserSession(user, secretaryData);
+                
+                if (loginOverlay) loginOverlay.classList.add('hidden');
+                if (appRoot) appRoot.classList.remove('hidden');
+                
+                updateInterfaceWithUser(secretaryData);
+                
+                await loadFromCacheAndDisplay();
+                if (isOnline) {
+                    await loadAllDataToCache();
+                    setupAllRealtimeSyncs();
+                }
+                
+                loadProfileData();
+                initializePortal();
+                
+            } catch (error) {
+                console.error("Erreur initialisation:", error);
                 if (loginOverlay) loginOverlay.classList.remove('hidden');
-            }).catch(error => {
-                console.error('Erreur déconnexion:', error);
-                if (loginOverlay) loginOverlay.classList.remove('hidden');
-            });
-        } else {
-            if (loginOverlay) loginOverlay.classList.remove('hidden');
-        }
+                if (appRoot) appRoot.classList.add('hidden');
+            }
+        })();
     } else {
-        // Aucun utilisateur Firebase connecté
-        if (!navigator.onLine) {
-            // Mode hors ligne : tenter la connexion depuis le cache
-            attemptOfflineLogin();
-        } else {
-            // Mode en ligne : afficher l'écran de connexion
-            if (loginOverlay) loginOverlay.classList.remove('hidden');
-            if (appRoot) appRoot.classList.add('hidden');
-        }
+        // 3. Pas d'utilisateur connecté
+        if (loginOverlay) loginOverlay.classList.remove('hidden');
+        if (appRoot) appRoot.classList.add('hidden');
     }
 };
 
@@ -4983,7 +5053,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }, 1000);
 });
-        // --- MODIFIER TON onAuthStateChanged EXISTANT ---
+        // --- MODIFIER onAuthStateChanged POUR SAUVEGARDER LA SESSION ---
 onAuthStateChanged(auth, async (user) => {
     if (user) {
         currentUser = user;
@@ -5006,7 +5076,10 @@ onAuthStateChanged(auth, async (user) => {
                 currentSecretary = { id: snap.docs[0].id, ...snap.docs[0].data() };
             }
             
-            // ⚠️ LIGNE CRUCIALE : Sauvegarde dans le cache pour la connexion hors ligne ⚠️
+            // 🔥 CRUCIAL : Sauvegarder la session localement pour les prochaines fois
+            saveUserSession(user, currentSecretary);
+            
+            // Mettre en cache pour la connexion hors ligne
             await cacheData('secretary', currentSecretary);
             
             if (loginOverlay) loginOverlay.classList.add('hidden');
@@ -5039,11 +5112,44 @@ onAuthStateChanged(auth, async (user) => {
             showLoginAlert("Erreur lors de l'initialisation du compte", "error");
         }
     } else {
-        if (loginOverlay) loginOverlay.classList.remove('hidden');
-        if (appRoot) appRoot.classList.add('hidden');
+        // Vérifier s'il y a une session sauvegardée
+        const savedSession = getUserSession();
+        if (savedSession && hasValidSession()) {
+            console.log('🔐 Connexion automatique depuis session sauvegardée');
+            window.checkAuthentication(); // Re-déclencher la vérification
+        } else {
+            if (loginOverlay) loginOverlay.classList.remove('hidden');
+            if (appRoot) appRoot.classList.add('hidden');
+        }
     }
 });
 
+/**
+ * Affiche un toast de bienvenue pour la connexion automatique
+ */
+function showAutoLoginToast(userName) {
+    const toast = document.createElement('div');
+    toast.className = 'update-toast show success';
+    toast.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <i class="fas fa-check-circle" style="color: #27ae60; font-size: 20px;"></i>
+            <div>
+                <strong>Bienvenue ${userName} !</strong><br>
+                <small>Connexion automatique réussie</small>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
+// Ajouter dans la fonction checkAuthentication après la connexion automatique
+// if (savedSession && hasValidSession()) { ... showAutoLoginToast(savedSession.fullName); }
         function showLoginAlert(message, type = 'info') {
             const alertBox = document.getElementById('login-alert');
             if (!alertBox) return;
@@ -5090,19 +5196,34 @@ onAuthStateChanged(auth, async (user) => {
             }
         });
 
-        // --- REMPLACER LE GESTIONNAIRE DU BOUTON LOGOUT ---
+        // --- MODIFIER LE GESTIONNAIRE DU BOUTON LOGOUT ---
 document.getElementById('logout-btn')?.addEventListener('click', async () => {
     // Déconnexion Firebase (si en ligne)
     try {
-        await signOut(auth);
+        if (window.auth && window.auth.currentUser) {
+            await signOut(auth);
+        }
     } catch (error) {
         console.error('Erreur déconnexion Firebase:', error);
     }
-
-    // 🧹 NETTOYAGE DU CACHE POUR LA PROCHAINE CONNEXION HORS LIGNE 🧹
+    
+    // 🧹 SUPPRIMER LA SESSION PERSISTANTE
+    clearUserSession();
+    
+    // Nettoyer les variables globales
+    window.currentSecretary = null;
+    window.currentUser = null;
+    
+    // Réinitialiser l'interface
+    const loginOverlay = document.getElementById('login-overlay');
+    const appRoot = document.getElementById('app-root');
+    
+    if (loginOverlay) loginOverlay.classList.remove('hidden');
+    if (appRoot) appRoot.classList.add('hidden');
+    
+    // Nettoyer le cache de la session
     try {
         if (cacheDB) {
-            // Supprimer les données du secrétaire du cache
             const transaction = cacheDB.transaction(['secretary'], 'readwrite');
             const store = transaction.objectStore('secretary');
             await new Promise((resolve, reject) => {
@@ -5115,17 +5236,17 @@ document.getElementById('logout-btn')?.addEventListener('click', async () => {
             });
         }
     } catch (cacheError) {
-        console.error('Erreur nettoyage cache:', cacheError);
+        console.error('Erreur nettoyage cache:', error);
     }
-
-    // Réinitialiser les variables globales
-    currentSecretary = null;
-    currentUser = null;
+    
+    // Vider le formulaire de connexion
+    const emailInput = document.getElementById('login-email');
+    const passwordInput = document.getElementById('login-password');
+    if (emailInput) emailInput.value = '';
+    if (passwordInput) passwordInput.value = '';
     
     showAlert("Déconnexion réussie", "success");
-    // La redirection sera gérée par onAuthStateChanged
 });
-
         // 10. GESTION PWA ET CONNEXION
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
@@ -15484,418 +15605,85 @@ function getCurrentSchoolYear() {
     return currentMonth >= 9 ? `${currentYear}-${currentYear + 1}` : `${currentYear - 1}-${currentYear}`;
 }
 
+// ============================================
+// GESTION DE LA SESSION PERSISTANTE
+// ============================================
 
+/**
+ * Sauvegarde la session utilisateur dans localStorage
+ * @param {object} user - Utilisateur Firebase
+ * @param {object} secretary - Données du secrétaire
+ */
+function saveUserSession(user, secretary) {
+    const sessionData = {
+        uid: user.uid,
+        email: user.email,
+        fullName: secretary.fullName || user.email.split('@')[0],
+        photoURL: secretary.photoURL || null,
+        phone: secretary.phone || null,
+        address: secretary.address || null,
+        createdAt: secretary.createdAt || new Date().toISOString(),
+        lastLogin: new Date().toISOString(),
+        isOfflineSession: !navigator.onLine
+    };
+    
+    localStorage.setItem('hybrilink_session', JSON.stringify(sessionData));
+    console.log('✅ Session sauvegardée localement');
+}
 
+/**
+ * Récupère la session utilisateur depuis localStorage
+ * @returns {object|null} Session utilisateur ou null
+ */
+function getUserSession() {
+    const session = localStorage.getItem('hybrilink_session');
+    if (session) {
+        try {
+            return JSON.parse(session);
+        } catch(e) {
+            console.error('Erreur parsing session:', e);
+            return null;
+        }
+    }
+    return null;
+}
+
+/**
+ * Supprime la session utilisateur (déconnexion)
+ */
+function clearUserSession() {
+    localStorage.removeItem('hybrilink_session');
+    console.log('🧹 Session utilisateur supprimée');
+}
+
+/**
+ * Vérifie si une session valide existe
+ * @returns {boolean} True si une session valide existe
+ */
+function hasValidSession() {
+    const session = getUserSession();
+    if (!session) return false;
+    
+    // Vérifier que la session n'est pas trop ancienne (optionnel)
+    // Par défaut, on garde la session indéfiniment
+    // Décommentez les lignes ci-dessous pour limiter à 30 jours
+    /*
+    const lastLogin = new Date(session.lastLogin);
+    const now = new Date();
+    const daysSinceLastLogin = (now - lastLogin) / (1000 * 60 * 60 * 24);
+    
+    // Session valide pendant 30 jours
+    if (daysSinceLastLogin > 30) {
+        clearUserSession();
+        return false;
+    }
+    */
+    
+    return true;
+}
 </script>
 
 
-
-<script>
-// ============================================
-// AUTHENTIFICATION PERSISTANTE ÉTERNELLE - VERSION COMPLÈTE
-// ============================================
-
-// 1. DÉSACTIVER L'AUTHENTIFICATION FIREBASE ORIGINALE
-// On va empêcher le code Firebase original de s'exécuter
-window.SKIP_FIREBASE_AUTH = true;
-
-// 2. VARIABLES GLOBALES
-let persistentUser = null;
-let persistentSecretary = null;
-
-// Clé de stockage
-const PERSISTENT_USER_KEY = 'hybrilink_persistent_user';
-
-// 3. STRUCTURE DES DONNÉES UTILISATEUR (DÉMO)
-// Vous devez remplacer ces données par vos vrais utilisateurs
-const DEMO_USERS = [
-    {
-        email: 'secretaire@hybrilink.com',
-        password: 'secret123',
-        fullName: 'Secrétaire Principal',
-        role: 'secretary',
-        phone: '+243 123 456 789',
-        address: 'Lubumbashi, RDC'
-    },
-    {
-        email: 'admin@hybrilink.com',
-        password: 'admin123',
-        fullName: 'Administrateur',
-        role: 'admin',
-        phone: '+243 987 654 321',
-        address: 'Lubumbashi, RDC'
-    }
-];
-
-// 4. SAUVEGARDER L'UTILISATEUR DANS LOCALSTORAGE (PERSISTANT)
-function savePersistentUser(userData) {
-    try {
-        // Données à sauvegarder
-        const persistentData = {
-            uid: userData.uid || 'persistent_' + Date.now(),
-            email: userData.email,
-            fullName: userData.fullName,
-            role: userData.role || 'secretary',
-            phone: userData.phone || '',
-            address: userData.address || '',
-            photoURL: userData.photoURL || null,
-            loginDate: new Date().toISOString(),
-            // Indique que c'est une session permanente
-            isPersistent: true
-        };
-        
-        // Sauvegarde dans localStorage (persistant éternellement)
-        localStorage.setItem(PERSISTENT_USER_KEY, JSON.stringify(persistentData));
-        
-        // Sauvegarde aussi dans sessionStorage pour redondance
-        sessionStorage.setItem(PERSISTENT_USER_KEY, JSON.stringify(persistentData));
-        
-        // Mettre à jour les variables globales
-        persistentUser = persistentData;
-        
-        console.log('✅ Utilisateur sauvegardé en session permanente');
-        return persistentData;
-    } catch (error) {
-        console.error('❌ Erreur sauvegarde:', error);
-        return null;
-    }
-}
-
-// 5. RÉCUPÉRER L'UTILISATEUR SAUVEGARDÉ
-function getPersistentUser() {
-    try {
-        // Vérifier d'abord dans localStorage
-        let saved = localStorage.getItem(PERSISTENT_USER_KEY);
-        
-        if (saved) {
-            const user = JSON.parse(saved);
-            persistentUser = user;
-            console.log('📦 Utilisateur trouvé dans localStorage:', user.email);
-            return user;
-        }
-        
-        // Sinon dans sessionStorage
-        saved = sessionStorage.getItem(PERSISTENT_USER_KEY);
-        if (saved) {
-            const user = JSON.parse(saved);
-            persistentUser = user;
-            console.log('📦 Utilisateur trouvé dans sessionStorage:', user.email);
-            return user;
-        }
-        
-        console.log('📭 Aucun utilisateur sauvegardé');
-        return null;
-    } catch (error) {
-        console.error('❌ Erreur récupération:', error);
-        return null;
-    }
-}
-
-// 6. SUPPRIMER L'UTILISATEUR (DÉCONNEXION)
-function clearPersistentUser() {
-    try {
-        localStorage.removeItem(PERSISTENT_USER_KEY);
-        sessionStorage.removeItem(PERSISTENT_USER_KEY);
-        persistentUser = null;
-        persistentSecretary = null;
-        console.log('🧹 Utilisateur supprimé - session terminée');
-        return true;
-    } catch (error) {
-        console.error('❌ Erreur suppression:', error);
-        return false;
-    }
-}
-
-// 7. RESTAURER L'INTERFACE UTILISATEUR
-function restoreUserInterface(userData) {
-    if (!userData) return false;
-    
-    try {
-        // Mettre à jour les variables globales pour la compatibilité
-        window.currentUser = {
-            uid: userData.uid,
-            email: userData.email,
-            isPersistentSession: true
-        };
-        
-        window.currentSecretary = {
-            id: userData.uid,
-            uid: userData.uid,
-            fullName: userData.fullName,
-            email: userData.email,
-            phone: userData.phone,
-            address: userData.address,
-            photoURL: userData.photoURL
-        };
-        
-        persistentSecretary = window.currentSecretary;
-        
-        // Mettre à jour l'interface
-        const secretaryNameEl = document.getElementById('secretary-name');
-        if (secretaryNameEl) {
-            secretaryNameEl.textContent = userData.fullName || userData.email;
-        }
-        
-        // Photo de profil
-        const photoContainer = document.getElementById('secretary-photo-container');
-        if (photoContainer) {
-            if (userData.photoURL) {
-                photoContainer.innerHTML = `<img src="${userData.photoURL}" class="secretary-photo" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">`;
-            } else {
-                photoContainer.innerHTML = `<div class="secretary-photo-placeholder" style="width:40px;height:40px;border-radius:50%;background:#eee;display:flex;align-items:center;justify-content:center;"><i class="fas fa-user"></i></div>`;
-            }
-        }
-        
-        // Mettre à jour le statut de connexion
-        const statusEl = document.getElementById('connection-status');
-        if (statusEl) {
-            statusEl.className = 'connection-status online';
-            statusEl.innerHTML = '<span class="status-indicator status-online" style="background:#27ae60;"></span><span>Connecté (permanent)</span>';
-        }
-        
-        // Cacher l'écran de connexion et afficher l'application
-        const loginOverlay = document.getElementById('login-overlay');
-        const appRoot = document.getElementById('app-root');
-        
-        if (loginOverlay) loginOverlay.classList.add('hidden');
-        if (appRoot) appRoot.classList.remove('hidden');
-        
-        // Mettre à jour le titre de la page
-        const pageTitle = document.getElementById('page-title');
-        if (pageTitle) pageTitle.textContent = 'Tableau de Bord';
-        
-        console.log('✅ Interface restaurée avec session permanente');
-        
-        // Charger les données de l'application
-        setTimeout(() => {
-            if (typeof loadDashboardStats === 'function') loadDashboardStats();
-            if (typeof loadUnifiedClassesIntoSelects === 'function') loadUnifiedClassesIntoSelects();
-            if (typeof loadUnifiedClassesList === 'function') loadUnifiedClassesList();
-            if (typeof loadStudentsList === 'function') loadStudentsList();
-            if (typeof loadTeachersList === 'function') loadTeachersList();
-            if (typeof loadWorkersList === 'function') loadWorkersList();
-            if (typeof initializePortal === 'function') initializePortal();
-        }, 100);
-        
-        return true;
-    } catch (error) {
-        console.error('❌ Erreur restauration interface:', error);
-        return false;
-    }
-}
-
-// 8. CONNEXION MANUELLE
-function manualLogin(email, password) {
-    // Vérifier les identifiants
-    const user = DEMO_USERS.find(u => u.email === email && u.password === password);
-    
-    if (user) {
-        // Créer un utilisateur persistant
-        const persistentData = {
-            uid: 'user_' + Date.now(),
-            email: user.email,
-            fullName: user.fullName,
-            role: user.role,
-            phone: user.phone,
-            address: user.address,
-            photoURL: user.photoURL || null
-        };
-        
-        // Sauvegarder
-        savePersistentUser(persistentData);
-        
-        // Restaurer l'interface
-        restoreUserInterface(persistentData);
-        
-        showAlert('✅ Connexion réussie ! Votre session est sauvegardée', 'success');
-        return true;
-    }
-    
-    showAlert('❌ Email ou mot de passe incorrect', 'error');
-    return false;
-}
-
-// 9. DÉCONNEXION (SEULE FAÇON DE REVOIR LE FORMULAIRE)
-function logoutUser() {
-    if (confirm('Êtes-vous sûr de vouloir vous déconnecter ?\n\nLa prochaine fois, vous devrez vous reconnecter.')) {
-        clearPersistentUser();
-        
-        // Cacher l'application et afficher le formulaire
-        const loginOverlay = document.getElementById('login-overlay');
-        const appRoot = document.getElementById('app-root');
-        
-        if (loginOverlay) loginOverlay.classList.remove('hidden');
-        if (appRoot) appRoot.classList.add('hidden');
-        
-        // Réinitialiser le formulaire
-        const loginForm = document.getElementById('login-form');
-        if (loginForm) loginForm.reset();
-        
-        // Réinitialiser les variables globales
-        window.currentUser = null;
-        window.currentSecretary = null;
-        
-        showAlert('✅ Déconnecté avec succès', 'success');
-    }
-}
-
-// 10. AFFICHER UNE ALERTE
-function showAlert(message, type = 'info') {
-    const alertBox = document.getElementById('global-alert');
-    if (!alertBox) return;
-    
-    alertBox.textContent = message;
-    alertBox.className = `alert alert-${type}`;
-    alertBox.classList.remove('hidden');
-    
-    setTimeout(() => {
-        alertBox.classList.add('hidden');
-    }, 5000);
-}
-
-// 11. INITIALISATION - POINT D'ENTRÉE PRINCIPAL
-function initPersistentAuth() {
-    console.log('🚀 Initialisation du système d\'authentification permanente...');
-    
-    // ÉTAPE 1: Vérifier si un utilisateur est déjà sauvegardé
-    const savedUser = getPersistentUser();
-    
-    if (savedUser) {
-        console.log('🔐 Utilisateur trouvé - connexion automatique');
-        restoreUserInterface(savedUser);
-    } else {
-        console.log('🔓 Aucun utilisateur - affichage du formulaire');
-        // Afficher le formulaire de connexion
-        const loginOverlay = document.getElementById('login-overlay');
-        const appRoot = document.getElementById('app-root');
-        
-        if (loginOverlay) loginOverlay.classList.remove('hidden');
-        if (appRoot) appRoot.classList.add('hidden');
-    }
-}
-
-// 12. CONFIGURER LE FORMULAIRE DE CONNEXION
-function setupLoginForm() {
-    const loginForm = document.getElementById('login-form');
-    if (!loginForm) return;
-    
-    // Supprimer les anciens écouteurs
-    const newForm = loginForm.cloneNode(true);
-    loginForm.parentNode.replaceChild(newForm, loginForm);
-    
-    newForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        
-        const email = document.getElementById('login-email')?.value;
-        const password = document.getElementById('login-password')?.value;
-        const submitBtn = newForm.querySelector('button[type="submit"]');
-        
-        if (!email || !password) {
-            showAlert('Veuillez remplir tous les champs', 'error');
-            return;
-        }
-        
-        if (submitBtn) {
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Connexion...';
-        }
-        
-        // Tenter la connexion
-        setTimeout(() => {
-            const success = manualLogin(email, password);
-            
-            if (submitBtn) {
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Se connecter';
-            }
-            
-            if (success) {
-                newForm.reset();
-            }
-        }, 500);
-    });
-    
-    console.log('✅ Formulaire de connexion configuré');
-}
-
-// 13. CONFIGURER LE BOUTON DE DÉCONNEXION
-function setupLogoutButton() {
-    const logoutBtn = document.getElementById('logout-btn');
-    if (!logoutBtn) return;
-    
-    // Supprimer les anciens écouteurs
-    const newLogoutBtn = logoutBtn.cloneNode(true);
-    logoutBtn.parentNode.replaceChild(newLogoutBtn, logoutBtn);
-    
-    newLogoutBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        logoutUser();
-    });
-    
-    console.log('✅ Bouton de déconnexion configuré');
-}
-
-// 14. INTERCEPTEUR POUR BLOQUER L'AUTH FIREBASE
-// On redéfinit onAuthStateChanged pour qu'il ne fasse rien
-if (window.onAuthStateChanged) {
-    const original = window.onAuthStateChanged;
-    window.onAuthStateChanged = function(auth, callback) {
-        console.log('🚫 Authentification Firebase désactivée');
-        // Ne rien faire - on utilise notre système
-        return null;
-    };
-}
-
-// 15. CACHER L'ÉCRAN DE DÉMARRAGE
-function hideSplashScreen() {
-    const splashScreen = document.getElementById('splash-screen');
-    if (splashScreen) {
-        setTimeout(() => {
-            splashScreen.classList.add('hidden');
-        }, 1000);
-    }
-}
-
-// ============================================
-// LANCEMENT DE L'APPLICATION
-// ============================================
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('📱 Application en cours d\'initialisation...');
-    
-    // 1. Cacher l'écran de démarrage
-    hideSplashScreen();
-    
-    // 2. Configurer les composants
-    setupLoginForm();
-    setupLogoutButton();
-    
-    // 3. Initialiser l'authentification persistante
-    initPersistentAuth();
-});
-
-// 4. Sauvegarde supplémentaire au chargement
-window.addEventListener('load', function() {
-    // Vérifier une dernière fois si on doit restaurer
-    if (!persistentUser && getPersistentUser()) {
-        initPersistentAuth();
-    }
-});
-
-// 5. Empêcher le code Firebase original de s'exécuter
-// On redéfinit les fonctions Firebase pour qu'elles ne fassent rien
-if (typeof signInWithEmailAndPassword !== 'undefined') {
-    window.signInWithEmailAndPassword = function() {
-        console.log('🚫 Authentification Firebase désactivée');
-        return Promise.reject('Authentification locale uniquement');
-    };
-}
-
-console.log('✅ Système d\'authentification permanente chargé');
-console.log('💡 Utilisez les identifiants suivants pour vous connecter:');
-console.log('   Email: secretaire@hybrilink.com');
-console.log('   Mot de passe: secret123');
-</script>
 
 </body>
 </html>  
