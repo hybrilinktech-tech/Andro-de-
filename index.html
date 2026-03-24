@@ -2322,6 +2322,8 @@ window.navigateToPage = function(pageId) {
         let cacheDB = null;
         let isOnline = navigator.onLine;
         let syncInProgress = false;
+
+let isFirstLogin = true; 
         let offlineQueue = [];
         
         // Initialiser IndexedDB
@@ -4932,10 +4934,7 @@ window.viewHistoricalData = async function(studentMatricule, className) {
             }
         }
 
-        // 9. AUTHENTIFICATION
-// --- REMPLACER LA FONCTION EXISTANTE ---
-
-// --- REMPLACER LA FONCTION checkAuthentication EXISTANTE ---
+        // REMPLACER LA FONCTION checkAuthentication EXISTANTE PAR CELLE-CI
 window.checkAuthentication = function() {
     const loginOverlay = document.getElementById('login-overlay');
     const appRoot = document.getElementById('app-root');
@@ -4987,72 +4986,11 @@ window.checkAuthentication = function() {
         return;
     }
     
-    // 2. Si pas de session, vérifier Firebase (pour la première connexion)
-    const user = window.auth ? window.auth.currentUser : null;
-    
-    if (user) {
-        console.log('🔐 Utilisateur Firebase connecté');
-        
-        // Récupérer les données du secrétaire
-        (async () => {
-            try {
-                const q = query(collection(db, 'secretary'), where('uid', '==', user.uid));
-                const snap = await getDocs(q);
-                
-                let secretaryData = {};
-                if (!snap.empty) {
-                    secretaryData = { id: snap.docs[0].id, ...snap.docs[0].data() };
-                } else {
-                    secretaryData = {
-                        uid: user.uid,
-                        fullName: user.email.split('@')[0],
-                        email: user.email,
-                        createdAt: new Date().toISOString()
-                    };
-                }
-                
-                window.currentUser = user;
-                window.currentSecretary = { ...secretaryData, uid: user.uid };
-                
-                // SAUVEGARDER LA SESSION POUR LES PROCHAINES FOIS
-                saveUserSession(user, secretaryData);
-                
-                if (loginOverlay) loginOverlay.classList.add('hidden');
-                if (appRoot) appRoot.classList.remove('hidden');
-                
-                updateInterfaceWithUser(secretaryData);
-                
-                await loadFromCacheAndDisplay();
-                if (isOnline) {
-                    await loadAllDataToCache();
-                    setupAllRealtimeSyncs();
-                }
-                
-                loadProfileData();
-                initializePortal();
-                
-            } catch (error) {
-                console.error("Erreur initialisation:", error);
-                if (loginOverlay) loginOverlay.classList.remove('hidden');
-                if (appRoot) appRoot.classList.add('hidden');
-            }
-        })();
-    } else {
-        // 3. Pas d'utilisateur connecté
-        if (loginOverlay) loginOverlay.classList.remove('hidden');
-        if (appRoot) appRoot.classList.add('hidden');
-    }
+    // 2. Pas de session en cache - PREMIÈRE CONNEXION UNIQUEMENT
+    console.log('🔄 Première utilisation - affichage du formulaire de connexion');
+    if (loginOverlay) loginOverlay.classList.remove('hidden');
+    if (appRoot) appRoot.classList.add('hidden');
 };
-
-// Exécuter après le chargement de la page
-document.addEventListener('DOMContentLoaded', function() {
-    // S'assurer que la fonction est appelée au bon moment
-    setTimeout(function() {
-        if (typeof window.checkAuthentication === 'function') {
-            window.checkAuthentication();
-        }
-    }, 1000);
-});
         // --- MODIFIER onAuthStateChanged POUR SAUVEGARDER LA SESSION ---
 onAuthStateChanged(auth, async (user) => {
     if (user) {
@@ -5196,8 +5134,15 @@ function showAutoLoginToast(userName) {
             }
         });
 
-        // --- MODIFIER LE GESTIONNAIRE DU BOUTON LOGOUT ---
+        // Modifier le gestionnaire de déconnexion existant
 document.getElementById('logout-btn')?.addEventListener('click', async () => {
+    // Afficher le formulaire de connexion
+    const loginOverlay = document.getElementById('login-overlay');
+    const appRoot = document.getElementById('app-root');
+    
+    if (loginOverlay) loginOverlay.classList.remove('hidden');
+    if (appRoot) appRoot.classList.add('hidden');
+    
     // Déconnexion Firebase (si en ligne)
     try {
         if (window.auth && window.auth.currentUser) {
@@ -5207,43 +5152,26 @@ document.getElementById('logout-btn')?.addEventListener('click', async () => {
         console.error('Erreur déconnexion Firebase:', error);
     }
     
-    // 🧹 SUPPRIMER LA SESSION PERSISTANTE
+    // Supprimer la session persistante
     clearUserSession();
     
     // Nettoyer les variables globales
     window.currentSecretary = null;
     window.currentUser = null;
     
-    // Réinitialiser l'interface
-    const loginOverlay = document.getElementById('login-overlay');
-    const appRoot = document.getElementById('app-root');
-    
-    if (loginOverlay) loginOverlay.classList.remove('hidden');
-    if (appRoot) appRoot.classList.add('hidden');
-    
-    // Nettoyer le cache de la session
-    try {
-        if (cacheDB) {
-            const transaction = cacheDB.transaction(['secretary'], 'readwrite');
-            const store = transaction.objectStore('secretary');
-            await new Promise((resolve, reject) => {
-                const request = store.clear();
-                request.onsuccess = () => {
-                    console.log('🧹 Cache secrétaire vidé');
-                    resolve();
-                };
-                request.onerror = () => reject(request.error);
-            });
-        }
-    } catch (cacheError) {
-        console.error('Erreur nettoyage cache:', error);
-    }
-    
     // Vider le formulaire de connexion
     const emailInput = document.getElementById('login-email');
     const passwordInput = document.getElementById('login-password');
     if (emailInput) emailInput.value = '';
     if (passwordInput) passwordInput.value = '';
+    
+    // Afficher un message
+    const loginAlert = document.getElementById('login-alert');
+    if (loginAlert) {
+        loginAlert.textContent = "Déconnecté. Pour vous reconnecter, veuillez entrer vos identifiants.";
+        loginAlert.className = "alert alert-info";
+        loginAlert.classList.remove('hidden');
+    }
     
     showAlert("Déconnexion réussie", "success");
 });
@@ -6125,15 +6053,75 @@ document.getElementById('student-category')?.addEventListener('change', async fu
     }
 });
 
-// Initialiser l'affichage au chargement de la page
+// Ajouter cette fonction après les autres
 document.addEventListener('DOMContentLoaded', function() {
-    // Déclencher l'événement change pour la catégorie par défaut
-    const categorySelect = document.getElementById('student-category');
-    if (categorySelect) {
-        // Simuler un événement change pour charger les classes initiales
-        setTimeout(() => {
-            categorySelect.dispatchEvent(new Event('change'));
-        }, 500);
+    console.log('DOM chargé, initialisation...');
+    
+    // Cacher l'écran de démarrage après 2 secondes max
+    setTimeout(function() {
+        const splashScreen = document.getElementById('splash-screen');
+        if (splashScreen) {
+            splashScreen.classList.add('hidden');
+        }
+    }, 2000);
+    
+    // Vérifier s'il y a une session sauvegardée
+    const savedSession = getUserSession();
+    
+    // Si session existante, ne pas afficher le login
+    if (savedSession && hasValidSession()) {
+        console.log('🔐 Session existante, démarrage direct');
+        const loginOverlay = document.getElementById('login-overlay');
+        const appRoot = document.getElementById('app-root');
+        
+        if (loginOverlay) loginOverlay.classList.add('hidden');
+        if (appRoot) appRoot.classList.remove('hidden');
+        
+        // Restaurer la session
+        const mockUser = {
+            uid: savedSession.uid,
+            email: savedSession.email,
+            isOfflineSession: true
+        };
+        
+        const mockSecretary = {
+            uid: savedSession.uid,
+            email: savedSession.email,
+            fullName: savedSession.fullName,
+            photoURL: savedSession.photoURL,
+            phone: savedSession.phone,
+            address: savedSession.address,
+            createdAt: savedSession.createdAt
+        };
+        
+        window.currentUser = mockUser;
+        window.currentSecretary = mockSecretary;
+        
+        updateInterfaceWithUser(mockSecretary);
+        
+        // Charger les données
+        setTimeout(function() {
+            if (typeof loadDashboardStats === 'function') loadDashboardStats();
+            if (typeof loadUnifiedClassesIntoSelects === 'function') loadUnifiedClassesIntoSelects();
+            if (typeof loadUnifiedClassesList === 'function') loadUnifiedClassesList();
+            if (typeof initializePortal === 'function') initializePortal();
+        }, 100);
+    } else {
+        // Première connexion seulement
+        console.log('🔄 Première connexion détectée');
+        const loginOverlay = document.getElementById('login-overlay');
+        const appRoot = document.getElementById('app-root');
+        
+        if (loginOverlay) loginOverlay.classList.remove('hidden');
+        if (appRoot) appRoot.classList.add('hidden');
+        
+        // Personnaliser le message pour la première connexion
+        const loginAlert = document.getElementById('login-alert');
+        if (loginAlert) {
+            loginAlert.textContent = "Bienvenue sur hybrilink. Veuillez vous connecter pour la première fois.";
+            loginAlert.className = "alert alert-info";
+            loginAlert.classList.remove('hidden');
+        }
     }
 });
 
@@ -10828,8 +10816,7 @@ document.getElementById('print-receipt-btn')?.addEventListener('click', () => {
     printWindow.document.close();
 });
 
-        // 26. PROFIL
-        // --- AMÉLIORER LA FONCTION loadProfileData ---
+        // Modifier la fonction loadProfileData existante
 async function loadProfileData() {
     if (!currentSecretary) return;
     
@@ -10846,10 +10833,9 @@ async function loadProfileData() {
     if (addressInput) addressInput.value = currentSecretary.address || '';
     if (createdInput) createdInput.value = formatDateOnly(currentSecretary.createdAt) || '';
     
-    // ⚠️ NOUVEAU : Indicateur de session hors ligne ⚠️
+    // Indicateur de session hors ligne
     const profileCard = document.querySelector('#profile-page .card');
     if (profileCard) {
-        // Supprimer l'ancien indicateur s'il existe
         const oldIndicator = document.getElementById('offline-session-indicator');
         if (oldIndicator) oldIndicator.remove();
         
@@ -10860,9 +10846,9 @@ async function loadProfileData() {
             indicator.className = 'alert alert-warning';
             indicator.style.marginTop = '1rem';
             indicator.innerHTML = `
-                <i class="fas fa-exclamation-triangle"></i>
-                <strong>Session hors ligne</strong> - Vous utilisez une session en cache. 
-                Connectez-vous à Internet et reconnectez-vous pour profiter des fonctionnalités en ligne.
+                <i class="fas fa-info-circle"></i>
+                <strong>Mode hors ligne</strong> - Vous utilisez une session en cache.
+                Vos données seront synchronisées automatiquement lors de la reconnexion.
             `;
             profileCard.appendChild(indicator);
         }
@@ -13608,11 +13594,16 @@ function updateInterfaceWithUser(user) {
             }
         }
         
-        // Statut de connexion
+        // Statut de connexion - toujours afficher hors ligne si session en cache
         const statusEl = document.getElementById('connection-status');
         if (statusEl) {
-            statusEl.className = 'connection-status offline';
-            statusEl.innerHTML = '<span class="status-indicator status-offline"></span><span>Hors ligne (cache)</span>';
+            if (!navigator.onLine || user.isOfflineSession) {
+                statusEl.className = 'connection-status offline';
+                statusEl.innerHTML = '<span class="status-indicator status-offline"></span><span>Mode hors ligne</span>';
+            } else {
+                statusEl.className = 'connection-status online';
+                statusEl.innerHTML = '<span class="status-indicator status-online"></span><span>En ligne</span>';
+            }
         }
         
     } catch (e) {
