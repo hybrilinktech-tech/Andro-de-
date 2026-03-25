@@ -15674,6 +15674,27 @@ function hasValidSession() {
 }
 </script>
 
+<script>
+// Solution de secours pour iOS hors ligne
+if (window.navigator.standalone === true) {
+    console.log('Mode standalone iOS détecté');
+    
+    // Forcer le cache de la page
+    window.addEventListener('load', function() {
+        if (!navigator.onLine) {
+            // En mode hors ligne, utiliser le cache
+            const cachedHTML = localStorage.getItem('cached_index');
+            if (cachedHTML && !window.location.href.includes('offline')) {
+                // Restaurer depuis le cache si disponible
+                document.documentElement.innerHTML = cachedHTML;
+            }
+        } else {
+            // En ligne, sauvegarder une copie
+            localStorage.setItem('cached_index', document.documentElement.outerHTML);
+        }
+    });
+}
+</script>
 
 
 </body>
