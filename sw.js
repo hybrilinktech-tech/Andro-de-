@@ -1,73 +1,15 @@
-const CACHE_NAME = 'hybrilink-v1';
-const DYNAMIC_CACHE = 'hybrilink-dynamic-v1';
-const API_CACHE = 'hybrilink-api-v1';
+const CACHE_NAME = 'hybrilink-v2';
+const DYNAMIC_CACHE = 'hybrilink-dynamic-v2';
+const API_CACHE = 'hybrilink-api-v2';
 
-importScripts('https://storage.googleapis.com/workbox-cdn/releases/5.1.2/workbox-sw.js');
-
-
-// Fichiers à mettre en cache immédiatement
+// Fichiers à mettre en cache immédiatement (MUST HAVE)
 const STATIC_ASSETS = [
   '/',
   'index.html',
-  'offline.html',
-  'manifest.json',
-  '/icons/icon-72x72.png',
-  '/icons/icon-96x96.png',
-  '/icons/icon-128x128.png',
-  '/icons/icon-144x144.png',
-  '/icons/icon-152x152.png',
-  '/icons/icon-167x167.png',
-  '/icons/icon-180x180.png',
-  '/icons/icon-192x192.png',
-  '/icons/icon-256x256.png',
-  '/icons/icon-512x512.png',
+  '/offline.html',
+  '/manifest.json',
   '/R.png'
 ];
-
-
-const CACHE = "pwabuilder-page";
-
-// TODO: replace the following with the correct offline fallback page i.e.: const offlineFallbackPage = "offline.html";
-const offlineFallbackPage = "ToDo-replace-this-name.html";
-
-self.addEventListener("message", (event) => {
-  if (event.data && event.data.type === "SKIP_WAITING") {
-    self.skipWaiting();
-  }
-});
-
-self.addEventListener('install', async (event) => {
-  event.waitUntil(
-    caches.open(CACHE)
-      .then((cache) => cache.add(offlineFallbackPage))
-  );
-});
-
-if (workbox.navigationPreload.isSupported()) {
-  workbox.navigationPreload.enable();
-}
-
-self.addEventListener('fetch', (event) => {
-  if (event.request.mode === 'navigate') {
-    event.respondWith((async () => {
-      try {
-        const preloadResp = await event.preloadResponse;
-
-        if (preloadResp) {
-          return preloadResp;
-        }
-
-        const networkResp = await fetch(event.request);
-        return networkResp;
-      } catch (error) {
-
-        const cache = await caches.open(CACHE);
-        const cachedResp = await cache.match(offlineFallbackPage);
-        return cachedResp;
-      }
-    })());
-  }
-});
 
 // Bibliothèques CDN à mettre en cache
 const CDN_ASSETS = [
@@ -84,75 +26,87 @@ const CDN_ASSETS = [
 
 // Installation du Service Worker
 self.addEventListener('install', event => {
-  console.log('Service Worker: Installation en cours...');
+  console.log('[SW] Installation...');
   
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        console.log('Service Worker: Mise en cache des fichiers statiques');
+        console.log('[SW] Mise en cache des fichiers statiques');
         return cache.addAll(STATIC_ASSETS);
       })
       .then(() => {
         return caches.open(DYNAMIC_CACHE);
       })
       .then(cache => {
-        console.log('Service Worker: Mise en cache des CDN');
+        console.log('[SW] Mise en cache des CDN');
         return cache.addAll(CDN_ASSETS);
       })
       .then(() => {
-        console.log('Service Worker: Installation terminée');
+        console.log('[SW] Installation terminée');
         return self.skipWaiting();
+      })
+      .catch(err => {
+        console.error('[SW] Erreur installation:', err);
       })
   );
 });
 
 // Activation du Service Worker
 self.addEventListener('activate', event => {
-  console.log('Service Worker: Activation...');
+  console.log('[SW] Activation...');
   
-  // Nettoyer les anciens caches
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
         cacheNames.map(cache => {
           if (cache !== CACHE_NAME && cache !== DYNAMIC_CACHE && cache !== API_CACHE) {
-            console.log('Service Worker: Suppression ancien cache', cache);
+            console.log('[SW] Suppression ancien cache', cache);
             return caches.delete(cache);
           }
         })
       );
     })
     .then(() => {
-      console.log('Service Worker: Prêt à contrôler les clients');
+      console.log('[SW] Prêt à contrôler les clients');
       return self.clients.claim();
     })
   );
 });
 
-// Stratégie de cache : Network First avec fallback sur cache
+// INTERCEPTEUR DE REQUÊTES PRINCIPAL
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
   
-  // Ignorer les requêtes vers Firebase et Cloudinary (toujours en ligne)
-  if (url.hostname.includes('firebase') || 
-      url.hostname.includes('cloudinary') || 
-      url.hostname.includes('googleapis')) {
-    return;
-  }
-  
-  // Stratégie pour les API (Firestore) - Network only
-  if (url.pathname.includes('firestore') || url.pathname.includes('auth')) {
+  // STRATÉGIE SPÉCIALE POUR index.html - TOUJOURS SERVIR DEPUIS LE CACHE EN PRIORITÉ
+  if (event.request.mode === 'navigate' || event.request.destination === 'document') {
     event.respondWith(
-      fetch(event.request)
-        .catch(error => {
-          console.log('API hors ligne, retour en cache local');
-          return caches.match(event.request);
+      caches.match(event.request)
+        .then(cachedResponse => {
+          if (cachedResponse) {
+            console.log('[SW] Page servie depuis le cache:', url.pathname);
+            return cachedResponse;
+          }
+          
+          // Si pas en cache, essayer le réseau
+          return fetch(event.request)
+            .then(networkResponse => {
+              // Mettre en cache la page pour la prochaine fois
+              const responseClone = networkResponse.clone();
+              caches.open(CACHE_NAME).then(cache => {
+                cache.put(event.request, responseClone);
+              });
+              return networkResponse;
+            })
+            .catch(() => {
+              // En dernier recours, afficher la page offline
+              return caches.match('/offline.html');
+            });
         })
     );
     return;
   }
   
-  // Stratégie pour les fichiers statiques - Cache first
+  // Pour les fichiers statiques (CSS, JS, images)
   if (event.request.url.includes('.css') || 
       event.request.url.includes('.js') || 
       event.request.url.includes('.png') || 
@@ -168,48 +122,18 @@ self.addEventListener('fetch', event => {
           
           return fetch(event.request)
             .then(networkResponse => {
-              // Mettre en cache dynamiquement
               const responseClone = networkResponse.clone();
               caches.open(DYNAMIC_CACHE).then(cache => {
                 cache.put(event.request, responseClone);
               });
               return networkResponse;
-            })
-            .catch(error => {
-              console.log('Ressource non trouvée en cache et hors ligne');
-              return caches.match('/offline.html');
             });
         })
     );
     return;
   }
   
-  // Stratégie pour les pages HTML - Network first, fallback cache
-  if (event.request.headers.get('accept').includes('text/html')) {
-    event.respondWith(
-      fetch(event.request)
-        .then(networkResponse => {
-          const responseClone = networkResponse.clone();
-          caches.open(DYNAMIC_CACHE).then(cache => {
-            cache.put(event.request, responseClone);
-          });
-          return networkResponse;
-        })
-        .catch(error => {
-          console.log('Page hors ligne, chargement depuis le cache');
-          return caches.match(event.request)
-            .then(cachedResponse => {
-              if (cachedResponse) {
-                return cachedResponse;
-              }
-              return caches.match('/offline.html');
-            });
-        })
-    );
-    return;
-  }
-  
-  // Stratégie par défaut - Network first
+  // Pour les requêtes API et Firebase - essayer le réseau d'abord
   event.respondWith(
     fetch(event.request)
       .then(networkResponse => {
@@ -222,33 +146,21 @@ self.addEventListener('fetch', event => {
         }
         return networkResponse;
       })
-      .catch(error => {
-        return caches.match(event.request)
-          .then(cachedResponse => {
-            if (cachedResponse) {
-              return cachedResponse;
-            }
-            return new Response('Ressource non disponible hors ligne', {
-              status: 503,
-              statusText: 'Service Unavailable',
-              headers: new Headers({
-                'Content-Type': 'text/plain'
-              })
-            });
-          });
+      .catch(() => {
+        return caches.match(event.request);
       })
   );
 });
 
 // Gestion des notifications push
 self.addEventListener('push', event => {
-  console.log('Service Worker: Push reçu', event);
+  console.log('[SW] Push reçu');
   
   let notificationData = {
     title: 'hybrilink',
     body: 'Nouvelle notification',
-    icon: '/icons/icon-192x192.png',
-    badge: '/icons/icon-96x96.png'
+    icon: '/R.png',
+    badge: '/R.png'
   };
   
   if (event.data) {
@@ -265,16 +177,12 @@ self.addEventListener('push', event => {
       body: notificationData.body,
       icon: notificationData.icon,
       badge: notificationData.badge,
-      vibrate: [200, 100, 200],
-      data: notificationData.data || {}
+      vibrate: [200, 100, 200]
     })
   );
 });
 
-// Gestion du clic sur les notifications
 self.addEventListener('notificationclick', event => {
-  console.log('Service Worker: Notification cliquée', event);
-  
   event.notification.close();
   
   event.waitUntil(
@@ -288,69 +196,25 @@ self.addEventListener('notificationclick', event => {
   );
 });
 
-// Gestion de la synchronisation en arrière-plan
+// Synchronisation en arrière-plan
 self.addEventListener('sync', event => {
-  console.log('Service Worker: Synchronisation en arrière-plan', event.tag);
+  console.log('[SW] Synchronisation:', event.tag);
   
-  if (event.tag === 'sync-payments') {
-    event.waitUntil(syncPayments());
-  } else if (event.tag === 'sync-enrollments') {
-    event.waitUntil(syncEnrollments());
-  } else if (event.tag === 'sync-salaries') {
-    event.waitUntil(syncSalaries());
+  if (event.tag === 'sync-data') {
+    event.waitUntil(
+      self.clients.matchAll().then(clients => {
+        clients.forEach(client => {
+          client.postMessage({
+            type: 'SYNC_DATA',
+            timestamp: Date.now()
+          });
+        });
+      })
+    );
   }
 });
 
-// Fonctions de synchronisation
-async function syncPayments() {
-  console.log('Synchronisation des paiements...');
-  try {
-    const clients = await self.clients.matchAll();
-    clients.forEach(client => {
-      client.postMessage({
-        type: 'SYNC_PAYMENTS',
-        timestamp: Date.now()
-      });
-    });
-  } catch (error) {
-    console.error('Erreur synchronisation paiements:', error);
-  }
-}
-
-async function syncEnrollments() {
-  console.log('Synchronisation des inscriptions...');
-  try {
-    const clients = await self.clients.matchAll();
-    clients.forEach(client => {
-      client.postMessage({
-        type: 'SYNC_ENROLLMENTS',
-        timestamp: Date.now()
-      });
-    });
-  } catch (error) {
-    console.error('Erreur synchronisation inscriptions:', error);
-  }
-}
-
-async function syncSalaries() {
-  console.log('Synchronisation des salaires...');
-  try {
-    const clients = await self.clients.matchAll();
-    clients.forEach(client => {
-      client.postMessage({
-        type: 'SYNC_SALARIES',
-        timestamp: Date.now()
-      });
-    });
-  } catch (error) {
-    console.error('Erreur synchronisation salaires:', error);
-  }
-}
-
-// Écouter les messages du client
 self.addEventListener('message', event => {
-  console.log('Service Worker: Message reçu', event.data);
-  
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
